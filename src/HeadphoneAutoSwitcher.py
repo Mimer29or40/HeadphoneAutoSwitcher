@@ -260,18 +260,18 @@ class State(AbstractContextManager):
                 case "Render":
                     self.prev_render_device = sound_device.name
 
-        self.set_default_device(self.capture_device)
-        self.set_default_device(self.render_device)
+        self.set_default_device("capture", self.capture_device)
+        self.set_default_device("render", self.render_device)
 
     def set_previous(self) -> None:
         """Set the previous device as the sound device."""
         if self.prev_capture_device != "":
-            self.set_default_device(self.prev_capture_device)
+            self.set_default_device("capture", self.prev_capture_device)
         if self.prev_render_device != "":
-            self.set_default_device(self.prev_render_device)
+            self.set_default_device("render", self.prev_render_device)
 
     @staticmethod
-    def set_default_device(name: str) -> None:
+    def set_default_device(dev_type: str, name: str) -> None:
         """Set the default device."""
         try:
             subprocess.run(  # noqa: S603
@@ -286,9 +286,9 @@ class State(AbstractContextManager):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            logger.info("Set default device: %s", name)
+            logger.info("Set %s device: %s", dev_type, name)
         except CalledProcessError as e:
-            logger.exception("Failed to set default device: %s", name, exc_info=e)
+            logger.exception("Failed to set %s device: %s", dev_type, name, exc_info=e)
 
 
 def get_sound_devices() -> list[SoundDevice]:
