@@ -14,3 +14,6 @@ pre-commit:
 
 tests:
     uv run pytest --cov=src --cov-report=markdown
+
+build:
+    uv run pyinstaller --onefile --specpath build -n HeadphoneAutoSwitcher src/HeadphoneAutoSwitcher.py
