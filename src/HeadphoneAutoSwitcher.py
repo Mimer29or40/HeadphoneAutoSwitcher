@@ -43,12 +43,13 @@ class SoundDevice(NamedTuple):  # noqa: D101
     default: str
 
 
+__name__: str = "HeadphoneAutoSwitcher"
 __version__: str = "1.0.0"
 
 logger: Logger = logging.getLogger()
 
 SOUND_VOLUME_VIEW_PATH: Path = Path("SoundVolumeView.exe")
-CONFIG_PATH: Path = Path("HeadphoneAutoSwitcher.json")
+CONFIG_PATH: Path = Path(f"{__name__}.json")
 
 DEFAULT_CONFIG: dict[str, str] = {
     "Headphone Vendor ID": "",
@@ -348,5 +349,4 @@ def output_table[T: tuple](table: list[T]) -> None:
         sys.stdout.write(format.format(*row) + "\n")
 
 
-if __name__ == "__main__":
-    manager.handle_main()
+manager.handle_main()
