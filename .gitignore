@@ -220,3 +220,8 @@ cython_debug/
 
 # setuptool_scm generated version file
 /__version__.py
+
+# Project specific files
+/src/devices.txt
+/src/SoundVolumeView.cfg
+/src/HeadphoneAutoSwitcher.json
