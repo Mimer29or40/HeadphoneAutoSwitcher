@@ -5,6 +5,8 @@ requires-python = ">=3.14"
 dependencies = [
     "pywinusb==0.4.2",
     "simplifiedcli==1.2.0",
+    "pywin32==312",
+    "python-dateutil>=2.9.0",
 ]
 
 
