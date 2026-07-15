@@ -161,14 +161,16 @@ class Config:
         """Load config from file."""
         loaded: dict[str, str] = json.loads(file_path.read_text())
 
+        values: dict[str, str] = {}
         f: Field
         for f in fields(cls):
             if f.name not in loaded:
                 errors.append(f"{f.name} is required.")
             elif loaded[f.name] == "":
                 errors.append(f"{f.name} is blank.")
+            values[f.name] = loaded[f.name]
 
-        return cls(**loaded)
+        return cls(**values)
 
 
 class HeadphoneAutoSwitcher:
@@ -454,47 +456,43 @@ def _create_command_parser() -> ArgumentParser:
 
 
 def _create_win_service_commands(parser: ArgumentParser, command_parser: _SubParsersAction) -> None:
-    # Re-Create win32serviceutil.HandleCommandLine commands so we can provide ones
+    """Re-Create win32serviceutil.HandleCommandLine commands so we can provide ones."""
+    argument_group: _ArgumentGroup
     argument_group: _ArgumentGroup = parser.add_argument_group("options for 'install' and 'update' commands only")
     argument_group.add_argument(
-        "-u",
         "--username",
         metavar="DOMAIN\\USERNAME",
         help="the username the service is to run under",
     )
     argument_group.add_argument(
-        "-p",
         "--password",
         help="the password for the username",
     )
     argument_group.add_argument(
-        "-s",
         "--startup",
         choices=["manual", "auto", "disabled", "delayed"],
         help="how the service starts, default = manual",
     )
     argument_group.add_argument(
-        "-i",
         "--interactive",
         action="store_true",
         help="allow the service to interact with the desktop",
     )
     argument_group.add_argument(
-        "-ini",
-        "--perf_mon_ini",
+        "--perfmonini",
         type=Path,
         metavar="FILE",
         help="file to use for registering performance monitor data",
     )
     argument_group.add_argument(
-        "-dll",
-        "--perf_mon_dll",
+        "--perfmondll",
         type=Path,
         metavar="FILE",
         help="file to use when querying the service for performance data, default = perfmondata.dll",
     )
+
+    argument_group = parser.add_argument_group("options for 'start' and 'stop' commands only")
     argument_group.add_argument(
-        "-w",
         "--wait",
         type=int,
         default=0,

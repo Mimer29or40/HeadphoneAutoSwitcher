@@ -13,4 +13,9 @@ tests:
     uv run pytest --cov=src --cov-report=markdown
 
 build:
-    uv run pyinstaller --onefile --specpath build -n HeadphoneAutoSwitcher src/HeadphoneAutoSwitcher.py
+    uv run pyinstaller \
+        --onefile \
+        --specpath build \
+        --hidden-import win32timezone \
+        -n HeadphoneAutoSwitcher \
+        src/HeadphoneAutoSwitcher.py
