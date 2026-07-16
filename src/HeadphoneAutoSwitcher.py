@@ -11,7 +11,6 @@ import json
 import logging
 import logging.config
 import os
-import re
 import subprocess
 import sys
 import time
@@ -25,10 +24,11 @@ from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import fields
 from pathlib import Path
-from re import Match
+from queue import Empty
+from queue import Full
+from queue import Queue
 from subprocess import CalledProcessError
 from subprocess import CompletedProcess
-from threading import Lock
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import NamedTuple
@@ -47,7 +47,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 app_name: str = "HeadphoneAutoSwitcher"
 app_description: str = "Automatically switches the sound to Headphones when they are powered on."
-app_version: str = "1.0.0"
+app_version: str = "1.1.0"
 
 logger: Logger = logging.getLogger()
 
@@ -173,36 +173,36 @@ class Config:
         return cls(**values)
 
 
-class HeadphoneAutoSwitcher:
-    """Headphone Auto Switcher."""
+type DeviceData = tuple[float, str]
+
+
+class DeviceListener:
+    """Listens to USB devices."""
 
     @override
-    def __init__(self, config: Config | None) -> None:
-        if getattr(sys, "frozen", False):
-            exe_file: Path = Path(sys.executable).parent
-            os.chdir(exe_file)
-
-        if config is None:
-            config = Config.load_from_file(CONFIG_PATH, [])
-        self.config: Config = config
-
-        self.running: bool = False
-        self.lock: Lock = Lock()
-        self.heartbeat: float = 0.0
-        self.connected: bool = False
-        self.prev_capture_device: str = ""
-        self.prev_render_device: str = ""
+    def __init__(self, config: Config, max_queue: int = 100) -> None:
+        self.vendor_id: str = config.vendor_id
+        self.product_id: str = config.product_id
+        self.max_queue: int = max_queue
 
         self.devices: list[HidDevice] = []
+        self.data: Queue[DeviceData] = Queue(self.max_queue)
+
+    def _data_handler_(self, raw_packet: list[int]) -> None:
+        """Data handler function called on device listener threads."""
+        packet: DeviceData = (time.perf_counter(), ",".join(map(str, raw_packet)))
+        try:
+            self.data.put_nowait(packet)
+        except Full:
+            with contextlib.suppress(Empty):
+                self.data.get_nowait()
+            self.data.put_nowait(packet)
 
     def open(self) -> None:
         """Open configured devices."""
         self.close()
 
-        filter: HidDeviceFilter = HidDeviceFilter(
-            vendor_id=int(self.config.vendor_id, 0),
-            product_id=int(self.config.product_id, 0),
-        )
+        filter: HidDeviceFilter = HidDeviceFilter(vendor_id=int(self.vendor_id, 0), product_id=int(self.product_id, 0))
         device: HidDevice
         for device in filter.get_devices():
             try:
@@ -221,16 +221,39 @@ class HeadphoneAutoSwitcher:
                 device.close()
         self.devices.clear()
 
+        self.data.shutdown()
+        self.data: Queue[DeviceData] = Queue(self.max_queue)
+
+
+class HeadphoneAutoSwitcher:
+    """Headphone Auto Switcher."""
+
+    @override
+    def __init__(self, config: Config) -> None:
+        self.capture_device: str = config.capture_device
+        self.render_device: str = config.render_device
+
+        self.listener: DeviceListener = DeviceListener(config)
+
+        self.running: bool = False
+        self.connected: bool = False
+        self.prev_capture_device: str = ""
+        self.prev_render_device: str = ""
+
     def start(self) -> None:
         """Start the auto switcher."""
         try:
-            self.open()
+            self.listener.open()
 
             self.running = True
             while self.running:  # Main loop we sit in once all systems are go for launch
-                with self.lock:  # Acquire the lock to get prev_heartbeat because it is set in other threads
-                    last_connected: bool = self.connected
-                    self.connected = time.perf_counter() - self.heartbeat < TIMEOUT
+                last_connected: bool = self.connected
+                self.connected = False
+                try:
+                    self.listener.data.get(timeout=CHECK_INTERVAL)
+                    self.connected = True
+                except Empty:
+                    pass
 
                 # Check for a state change and process accordingly
                 if last_connected != self.connected:
@@ -238,27 +261,12 @@ class HeadphoneAutoSwitcher:
                         self.set_headphones()
                     else:
                         self.set_previous()
-
-                time.sleep(CHECK_INTERVAL)
         finally:  # Stop signal received or something has failed
-            self.close()
+            self.listener.close()
 
     def stop(self) -> None:
         """Stop the auto switcher."""
         self.running = False
-
-    def _data_handler_(self, packet: list[str]) -> None:
-        """Data handler function called on device listener threads."""
-        pattern: str = HEARTBEAT_PATTERNS[self.config.vendor_id, self.config.product_id]
-
-        packet_string: str = ",".join(map(str, packet))
-        match: Match[str] | None = re.fullmatch(pattern, packet_string)
-
-        if match is None:  # Not a heartbeat packet
-            return
-
-        with self.lock:
-            self.heartbeat = time.perf_counter()
 
     def set_headphones(self) -> None:
         """Set the headphones as the sound device."""
@@ -270,8 +278,8 @@ class HeadphoneAutoSwitcher:
                 case "Render":
                     self.prev_render_device = sound_device.name
 
-        self.set_default_device("capture", self.config.capture_device)
-        self.set_default_device("render", self.config.render_device)
+        self.set_default_device("capture", self.capture_device)
+        self.set_default_device("render", self.render_device)
 
     def set_previous(self) -> None:
         """Set the previous device as the sound device."""
@@ -339,11 +347,11 @@ def validate() -> CommandResult:
         logger.critical("Headphone not supported: Vendor (%s) Product (%s)", vendor_id, product_id)
         return "UNSUPPORTED_HEADPHONES"
 
-    switcher: HeadphoneAutoSwitcher = HeadphoneAutoSwitcher(None)
+    listener: DeviceListener = DeviceListener(config)
 
-    switcher.open()
-    device_count: int = len(switcher.devices)
-    switcher.close()
+    listener.open()
+    device_count: int = len(listener.devices)
+    listener.close()
 
     if device_count == 0:
         logger.critical("No devices found: Vendor (%s) Product (%s)", vendor_id, product_id)
@@ -355,8 +363,26 @@ def validate() -> CommandResult:
 
 
 def listen() -> CommandResult:
-    """Begin listening to devices."""
-    switcher: HeadphoneAutoSwitcher = HeadphoneAutoSwitcher(None)
+    """Listen to the configured device received data."""
+    config: Config = Config.load_from_file(CONFIG_PATH, [])
+    listener: DeviceListener = DeviceListener(config)
+    try:
+        listener.open()
+        while True:
+            data: DeviceData = listener.data.get()
+            logger.info("Received data: %s, %s", *data)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        listener.close()
+
+    return 0
+
+
+def run() -> CommandResult:
+    """Run the headphone switcher."""
+    config: Config = Config.load_from_file(CONFIG_PATH, [])
+    switcher: HeadphoneAutoSwitcher = HeadphoneAutoSwitcher(config)
     with contextlib.suppress(KeyboardInterrupt):
         switcher.start()
     return 0
@@ -368,6 +394,7 @@ def win_service(command_name: str | None, *args: Any) -> None:
     import win32service  # noqa: PLC0415  # ty:ignore[unresolved-import]
     import win32serviceutil  # noqa: PLC0415
 
+    # noinspection PyRedeclaration
     class Service(win32serviceutil.ServiceFramework):
         """HeadphoneAutoSwitcher service class."""
 
@@ -380,8 +407,13 @@ def win_service(command_name: str | None, *args: Any) -> None:
         def __init__(self, args: Sequence[str]) -> None:
             super().__init__(args)
 
+            if getattr(sys, "frozen", False):
+                exe_file: Path = Path(sys.executable).parent
+                os.chdir(exe_file)
+
+            config: Config = Config.load_from_file(CONFIG_PATH, [])
+            self.switcher: HeadphoneAutoSwitcher = HeadphoneAutoSwitcher(config)
             self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
-            self.switcher: HeadphoneAutoSwitcher = HeadphoneAutoSwitcher(None)
 
         @override
         def SvcRun(self) -> None:
@@ -447,7 +479,11 @@ def _create_command_parser() -> ArgumentParser:
     )
     command_parser.add_parser(
         "listen",
-        help="begin listening to devices",
+        help="listen to the configured device data",
+    )
+    command_parser.add_parser(
+        "run",
+        help="run the headphone switcher",
     )
 
     _create_win_service_commands(parser, command_parser)
@@ -458,7 +494,7 @@ def _create_command_parser() -> ArgumentParser:
 def _create_win_service_commands(parser: ArgumentParser, command_parser: _SubParsersAction) -> None:
     """Re-Create win32serviceutil.HandleCommandLine commands so we can provide ones."""
     argument_group: _ArgumentGroup
-    argument_group: _ArgumentGroup = parser.add_argument_group("options for 'install' and 'update' commands only")
+    argument_group = parser.add_argument_group("options for 'install' and 'update' commands only")
     argument_group.add_argument(
         "--username",
         metavar="DOMAIN\\USERNAME",
@@ -554,7 +590,7 @@ def _create_win_service_commands(parser: ArgumentParser, command_parser: _SubPar
     )
 
 
-def run(*args: Any) -> CommandResult:
+def main(*args: Any) -> CommandResult:
     """Run command line with arguments."""
     logging.config.dictConfig(
         {
@@ -589,6 +625,8 @@ def run(*args: Any) -> CommandResult:
                 validate()
             case "listen":
                 listen()
+            case "run":
+                run()
             case _:
                 win_service(command_name, *args)
     except ArgumentError as e:
@@ -608,7 +646,7 @@ def run(*args: Any) -> CommandResult:
 def handle_main() -> NoReturn:
     """Handle main."""
     args: list[str] = sys.argv[1:]
-    result: CommandResult = run(*args)
+    result: CommandResult = main(*args)
     sys.exit(result)
 
 
