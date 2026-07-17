@@ -11,9 +11,12 @@ import json
 import logging
 import logging.config
 import os
+import re
 import subprocess
 import sys
 import time
+from abc import ABC
+from abc import abstractmethod
 from argparse import REMAINDER
 from argparse import ArgumentError
 from argparse import ArgumentParser
@@ -44,28 +47,18 @@ if TYPE_CHECKING:  # pragma: no cover
     from argparse import _SubParsersAction
     from collections.abc import Sequence
     from logging import Logger
+    from re import Pattern
 
 app_name: str = "HeadphoneAutoSwitcher"
 app_description: str = "Automatically switches the sound to Headphones when they are powered on."
-app_version: str = "1.1.0"
+app_version: str = "2.0.0"
 
 logger: Logger = logging.getLogger()
-
-# ----- Tunable parameter ----- #
-CHECK_INTERVAL: float = 0.1  # seconds
-TIMEOUT: float = 1.5  # seconds
-
-# ----- Lookup table of heartbeat patterns ----- #
-HEARTBEAT_PATTERNS: dict[tuple[str, str], str] = {
-    ("0x1B1C", "0x2A08"): r"^1,1,6.*",  # CORSAIR VOID WIRELESS v2 Gaming Headset
-}
 
 # ----- Paths to files needed by the service ----- #
 SOUND_VOLUME_VIEW_PATH: Path = Path("SoundVolumeView.exe")
 CONFIG_PATH: Path = Path(f"{app_name}.json")
-
-
-type CommandResult = int | str
+HANDLER_DB_PATH: Path = Path("handler_db.json")
 
 
 class SoundDevice(NamedTuple):
@@ -88,6 +81,9 @@ class UsbDevice(NamedTuple):
 def get_sound_devices() -> list[SoundDevice]:
     """Get sound devices."""
     devices: list[SoundDevice] = []
+
+    if not SOUND_VOLUME_VIEW_PATH.is_file():
+        raise FileNotFoundError("SoundVolumeView.exe not found")
 
     device_file: Path = Path("devices.txt")
 
@@ -173,16 +169,20 @@ class Config:
         return cls(**values)
 
 
-type DeviceData = tuple[float, str]
+class DeviceData(NamedTuple):
+    """The data received from a device."""
+
+    time: float
+    packet: str
 
 
 class DeviceListener:
     """Listens to USB devices."""
 
     @override
-    def __init__(self, config: Config, max_queue: int = 100) -> None:
-        self.vendor_id: str = config.vendor_id
-        self.product_id: str = config.product_id
+    def __init__(self, vendor_id: str, product_id: str, max_queue: int = 100) -> None:
+        self.vendor_id: str = vendor_id
+        self.product_id: str = product_id
         self.max_queue: int = max_queue
 
         self.devices: list[HidDevice] = []
@@ -190,7 +190,7 @@ class DeviceListener:
 
     def _data_handler_(self, raw_packet: list[int]) -> None:
         """Data handler function called on device listener threads."""
-        packet: DeviceData = (time.perf_counter(), ",".join(map(str, raw_packet)))
+        packet: DeviceData = DeviceData(time.perf_counter(), ",".join(map(str, raw_packet)))
         try:
             self.data.put_nowait(packet)
         except Full:
@@ -198,18 +198,25 @@ class DeviceListener:
                 self.data.get_nowait()
             self.data.put_nowait(packet)
 
-    def open(self) -> None:
-        """Open configured devices."""
-        self.close()
+    def load(self) -> None:
+        """Load configured devices."""
+        self.devices.clear()
 
         filter: HidDeviceFilter = HidDeviceFilter(vendor_id=int(self.vendor_id, 0), product_id=int(self.product_id, 0))
         device: HidDevice
         for device in filter.get_devices():
+            self.devices.append(device)
+            logger.info("Loading: %s[%s]", device.product_name, device.instance_id)
+
+    def open(self) -> None:
+        """Open loaded devices."""
+        self.close()
+
+        device: HidDevice
+        for device in self.devices:
             try:
                 device.open()
                 device.set_raw_data_handler(self._data_handler_)
-                self.devices.append(device)
-                logger.info("Opening: %s[%s]", device.product_name, device.instance_id)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Unable to open device: %s", device.product_name, exc_info=e)
 
@@ -219,10 +226,96 @@ class DeviceListener:
         for device in self.devices:
             with contextlib.suppress(BaseException):
                 device.close()
-        self.devices.clear()
 
         self.data.shutdown()
         self.data: Queue[DeviceData] = Queue(self.max_queue)
+
+
+type ConnectionState = bool | None
+
+
+class DeviceHandler(ABC):
+    """Handle USB data."""
+
+    @abstractmethod
+    @override
+    def __init__(self, **kwargs: Any) -> None:
+        pass
+
+    @abstractmethod
+    def is_connected(self, listener: DeviceListener) -> ConnectionState:
+        """Check if device is connected."""
+
+
+class Heartbeat(DeviceHandler):
+    """Devices that periodically send data packets."""
+
+    @override
+    def __init__(self, timeout: float) -> None:
+        self.timeout: float = timeout
+        self._state: bool = False
+
+    @override
+    def is_connected(self, listener: DeviceListener) -> ConnectionState:
+        last_state: bool = self._state
+        try:
+            listener.data.get(timeout=self.timeout)
+            self._state = True
+        except Empty:
+            self._state = False
+        return self._state if last_state != self._state else None
+
+
+class OnOff(DeviceHandler):
+    """Devices that send data packets on power on and off."""
+
+    @override
+    def __init__(self, on_pattern: str, off_pattern: str) -> None:
+        self.on_pattern: Pattern[str] = re.compile(on_pattern)
+        self.off_pattern: Pattern[str] = re.compile(off_pattern)
+
+    @override
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(on_pattern={self.on_pattern!r}, off_pattern={self.off_pattern!r})"
+
+    @override
+    def is_connected(self, listener: DeviceListener) -> ConnectionState:
+        with contextlib.suppress(Empty):
+            data: DeviceData = listener.data.get(block=False)
+            if self.on_pattern.match(data.packet) is not None:
+                return True
+            if self.off_pattern.match(data.packet) is not None:
+                return False
+        return None
+
+
+def get_device_handler(file_path: Path, vendor_id: str, product_id: str) -> DeviceHandler:
+    """Get a DeviceHandler from the file with the vendor_id and product_id."""
+    device_db: dict[str, Any] = json.loads(file_path.read_text())
+
+    version: int = device_db["version"]
+    if version != 1:
+        raise RuntimeError("version must be set to 1")
+
+    handler_map: dict[str, dict[str, Any]] = device_db["handlers"]
+
+    hand_name: str
+    hand_props: dict[str, Any]
+    for hand_name, hand_props in handler_map.items():
+        hand_vid: str = hand_props.pop("vendor_id")
+        hand_pid: str = hand_props.pop("product_id")
+
+        if hand_vid != vendor_id or hand_pid != product_id:
+            continue
+
+        logger.info("Loading device handler: %s (%s,%s)", hand_name, hand_vid, hand_pid)
+
+        hand_type: str = hand_props.pop("type")
+        hand_cls: type[DeviceHandler] = {"heartbeat": Heartbeat, "on/off": OnOff}[hand_type]
+
+        return hand_cls(**hand_props)
+
+    raise KeyError(f"no DeviceHandler found for ({vendor_id},{product_id})")
 
 
 class HeadphoneAutoSwitcher:
@@ -233,31 +326,26 @@ class HeadphoneAutoSwitcher:
         self.capture_device: str = config.capture_device
         self.render_device: str = config.render_device
 
-        self.listener: DeviceListener = DeviceListener(config)
+        self.listener: DeviceListener = DeviceListener(config.vendor_id, config.product_id)
+        self.handler: DeviceHandler = get_device_handler(HANDLER_DB_PATH, config.vendor_id, config.product_id)
 
         self.running: bool = False
-        self.connected: bool = False
         self.prev_capture_device: str = ""
         self.prev_render_device: str = ""
 
     def start(self) -> None:
         """Start the auto switcher."""
         try:
+            self.listener.load()
             self.listener.open()
 
             self.running = True
             while self.running:  # Main loop we sit in once all systems are go for launch
-                last_connected: bool = self.connected
-                self.connected = False
-                try:
-                    self.listener.data.get(timeout=CHECK_INTERVAL)
-                    self.connected = True
-                except Empty:
-                    pass
+                connected: ConnectionState = self.handler.is_connected(self.listener)
 
                 # Check for a state change and process accordingly
-                if last_connected != self.connected:
-                    if self.connected:
+                if connected is not None:
+                    if connected:
                         self.set_headphones()
                     else:
                         self.set_previous()
@@ -309,7 +397,13 @@ class HeadphoneAutoSwitcher:
             logger.exception("Failed to set %s device: %s", dev_type, name, exc_info=e)
 
 
-def sound() -> CommandResult:
+# ---------- Command Stuff ---------- #
+
+
+type CommandResult = int | str
+
+
+def cmd_sound() -> CommandResult:
     """List all sound devices."""
     devices: list[SoundDevice] = get_sound_devices()
     devices = [SoundDevice("Direction", "Name", "Default"), *sorted(set(devices))]
@@ -319,7 +413,7 @@ def sound() -> CommandResult:
     return 0
 
 
-def usb() -> CommandResult:
+def cmd_usb() -> CommandResult:
     """List all USB devices."""
     devices: list[UsbDevice] = get_usb_devices()
     devices = [UsbDevice("Vendor", "Product", "Version", "Serial Number"), *sorted(set(devices))]
@@ -329,7 +423,7 @@ def usb() -> CommandResult:
     return 0
 
 
-def validate() -> CommandResult:
+def cmd_validate() -> CommandResult:
     """Validate the config."""
     if not CONFIG_PATH.is_file():
         Config().save_to_file(CONFIG_PATH)
@@ -343,15 +437,17 @@ def validate() -> CommandResult:
     vendor_id: str = "0x" + config.vendor_id.removeprefix("0x")
     product_id: str = "0x" + config.product_id.removeprefix("0x")
 
-    if (vendor_id, product_id) not in HEARTBEAT_PATTERNS:
+    try:
+        handler: DeviceHandler = get_device_handler(HANDLER_DB_PATH, vendor_id, product_id)
+        logger.info("Handler found: %s", handler)
+    except KeyError:
         logger.critical("Headphone not supported: Vendor (%s) Product (%s)", vendor_id, product_id)
         return "UNSUPPORTED_HEADPHONES"
 
-    listener: DeviceListener = DeviceListener(config)
+    listener: DeviceListener = DeviceListener(config.vendor_id, config.product_id)
 
-    listener.open()
+    listener.load()
     device_count: int = len(listener.devices)
-    listener.close()
 
     if device_count == 0:
         logger.critical("No devices found: Vendor (%s) Product (%s)", vendor_id, product_id)
@@ -362,11 +458,12 @@ def validate() -> CommandResult:
     return 0
 
 
-def listen() -> CommandResult:
+def cmd_listen() -> CommandResult:
     """Listen to the configured device received data."""
     config: Config = Config.load_from_file(CONFIG_PATH, [])
-    listener: DeviceListener = DeviceListener(config)
+    listener: DeviceListener = DeviceListener(config.vendor_id, config.product_id)
     try:
+        listener.load()
         listener.open()
         while True:
             data: DeviceData = listener.data.get()
@@ -379,7 +476,7 @@ def listen() -> CommandResult:
     return 0
 
 
-def run() -> CommandResult:
+def cmd_run() -> CommandResult:
     """Run the headphone switcher."""
     config: Config = Config.load_from_file(CONFIG_PATH, [])
     switcher: HeadphoneAutoSwitcher = HeadphoneAutoSwitcher(config)
@@ -388,7 +485,7 @@ def run() -> CommandResult:
     return 0
 
 
-def win_service(command_name: str | None, *args: Any) -> None:
+def cmd_win_service(command_name: str | None, *args: Any) -> None:
     """Dispatch command to win32."""
     global Service  # ty:ignore[unresolved-global]
     import win32service  # noqa: PLC0415  # ty:ignore[unresolved-import]
@@ -618,17 +715,17 @@ def main(*args: Any) -> CommandResult:
         command_name: str | None = parsed_args.command
         match command_name:
             case "sound":
-                sound()
+                cmd_sound()
             case "usb":
-                usb()
+                cmd_usb()
             case "validate":
-                validate()
+                cmd_validate()
             case "listen":
-                listen()
+                cmd_listen()
             case "run":
-                run()
+                cmd_run()
             case _:
-                win_service(command_name, *args)
+                cmd_win_service(command_name, *args)
     except ArgumentError as e:
         # Raised when ArgumentParser fails to parse the arguments.
         logger.exception("Argparse error:", exc_info=e)

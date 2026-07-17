@@ -225,3 +225,4 @@ cython_debug/
 /src/devices.txt
 /src/SoundVolumeView.cfg
 /src/HeadphoneAutoSwitcher.json
+/src/handler_db.json
