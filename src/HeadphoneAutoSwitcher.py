@@ -52,7 +52,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 app_name: str = "HeadphoneAutoSwitcher"
 app_description: str = "Automatically switches the sound to Headphones when they are powered on."
-app_version: str = "2.1.0"
+app_version: str = "2.1.1"
 
 logger: Logger = logging.getLogger()
 
@@ -262,14 +262,19 @@ class Heartbeat(DeviceHandler):
         last_state: bool = self._state
         try:
             data: DeviceData = listener.data.get(timeout=self.timeout)
+            logger.debug(data)
             if self.pattern.pattern == "":
                 self._state = True
             else:
                 m: Match[str] | None = self.pattern.match(data.packet)
-                self._state = m is not None
+                if m is not None:
+                    self._state = True
         except Empty:
             self._state = False
-        return self._state if last_state != self._state else None
+
+        state: ConnectionState = self._state if last_state != self._state else None
+
+        return state
 
 
 class OnOff(DeviceHandler):
@@ -288,6 +293,7 @@ class OnOff(DeviceHandler):
     def is_connected(self, listener: DeviceListener) -> ConnectionState:
         with contextlib.suppress(Empty):
             data: DeviceData = listener.data.get(block=False)
+            logger.debug(data)
             if self.on_pattern.match(data.packet) is not None:
                 return True
             if self.off_pattern.match(data.packet) is not None:
@@ -297,31 +303,35 @@ class OnOff(DeviceHandler):
 
 def get_device_handler(file_path: Path, vendor_id: str, product_id: str) -> DeviceHandler:
     """Get a DeviceHandler from the file with the vendor_id and product_id."""
+    logger.info("Loading DeviceHandler database: %r", str(file_path))
+
     device_db: dict[str, Any] = json.loads(file_path.read_text())
 
     version: int = device_db["version"]
     if version != 1:
-        raise RuntimeError("version must be set to 1")
+        raise RuntimeError("Version must be set to 1")
 
     handler_map: dict[str, dict[str, Any]] = device_db["handlers"]
 
     hand_name: str
     hand_props: dict[str, Any]
     for hand_name, hand_props in handler_map.items():
+        logger.debug("Loaded DeviceHandler %r: %r", hand_name, hand_props)
+
         hand_vid: str = hand_props.pop("vendor_id")
         hand_pid: str = hand_props.pop("product_id")
 
         if hand_vid != vendor_id or hand_pid != product_id:
             continue
 
-        logger.info("Loading device handler: %s (%s,%s)", hand_name, hand_vid, hand_pid)
+        logger.info("Found handler %r for device (%s,%s)", hand_name, hand_vid, hand_pid)
 
         hand_type: str = hand_props.pop("type")
         hand_cls: type[DeviceHandler] = {"heartbeat": Heartbeat, "on/off": OnOff}[hand_type]
 
         return hand_cls(**hand_props)
 
-    raise KeyError(f"no DeviceHandler found for ({vendor_id},{product_id})")
+    raise KeyError(f"No DeviceHandler found for ({vendor_id},{product_id})")
 
 
 class HeadphoneAutoSwitcher:
@@ -347,11 +357,12 @@ class HeadphoneAutoSwitcher:
 
             self.running = True
             while self.running:  # Main loop we sit in once all systems are go for launch
-                connected: ConnectionState = self.handler.is_connected(self.listener)
+                state: ConnectionState = self.handler.is_connected(self.listener)
 
                 # Check for a state change and process accordingly
-                if connected is not None:
-                    if connected:
+                if state is not None:
+                    logger.debug("State change: %s", state)
+                    if state:
                         self.set_headphones()
                     else:
                         self.set_previous()
@@ -404,6 +415,7 @@ class HeadphoneAutoSwitcher:
 
 
 # ---------- Command Stuff ---------- #
+# TODO(Ryan): Command to track time between heartbeats
 
 
 type CommandResult = int | str
@@ -560,7 +572,8 @@ def _create_command_parser() -> ArgumentParser:
     prog: str = f"{app_name}.exe" if getattr(sys, "frozen", False) else f"{app_name}.py"
     parser: ArgumentParser = ArgumentParser(prog=prog, description=app_description, exit_on_error=False)
 
-    parser.add_argument("-v", "--version", action="version", version=app_version)
+    parser.add_argument("--version", action="version", version=app_version)
+    parser.add_argument("--verbose", action="store_true")
 
     command_parser: _SubParsersAction = parser.add_subparsers(
         title="commands",
@@ -695,28 +708,31 @@ def _create_win_service_commands(parser: ArgumentParser, command_parser: _SubPar
 
 def main(*args: Any) -> CommandResult:
     """Run command line with arguments."""
-    logging.config.dictConfig(
-        {
-            "version": 1,
-            "incremental": False,
-            "disable_existing_loggers": False,
-            "formatters": {"standard": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
-            "handlers": {
-                "console": {
-                    "class": "logging.StreamHandler",
-                    "formatter": "standard",
-                    "level": "INFO",
-                    "stream": "ext://sys.stdout",
-                },
+    log_config: dict[str, Any] = {
+        "version": 1,
+        "incremental": False,
+        "disable_existing_loggers": False,
+        "formatters": {"standard": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "level": "INFO",
+                "stream": "ext://sys.stdout",
             },
-            "root": {"level": "DEBUG", "handlers": ["console"]},
-        }
-    )
+        },
+        "root": {"level": "DEBUG", "handlers": ["console"]},
+    }
 
     exit_code: CommandResult = 0
     try:
         parser: ArgumentParser = _create_command_parser()
         parsed_args: Namespace = parser.parse_args(args)
+
+        verbose: bool = parsed_args.verbose
+        if verbose:
+            log_config["handlers"]["console"]["level"] = "DEBUG"
+        logging.config.dictConfig(log_config)
 
         command_name: str | None = parsed_args.command
         match command_name:
