@@ -47,11 +47,12 @@ if TYPE_CHECKING:  # pragma: no cover
     from argparse import _SubParsersAction
     from collections.abc import Sequence
     from logging import Logger
+    from re import Match
     from re import Pattern
 
 app_name: str = "HeadphoneAutoSwitcher"
 app_description: str = "Automatically switches the sound to Headphones when they are powered on."
-app_version: str = "2.0.0"
+app_version: str = "2.1.0"
 
 logger: Logger = logging.getLogger()
 
@@ -251,16 +252,21 @@ class Heartbeat(DeviceHandler):
     """Devices that periodically send data packets."""
 
     @override
-    def __init__(self, timeout: float) -> None:
+    def __init__(self, timeout: float, pattern: str = ".*") -> None:
         self.timeout: float = timeout
+        self.pattern: Pattern[str] = re.compile(pattern)
         self._state: bool = False
 
     @override
     def is_connected(self, listener: DeviceListener) -> ConnectionState:
         last_state: bool = self._state
         try:
-            listener.data.get(timeout=self.timeout)
-            self._state = True
+            data: DeviceData = listener.data.get(timeout=self.timeout)
+            if self.pattern.pattern == "":
+                self._state = True
+            else:
+                m: Match[str] | None = self.pattern.match(data.packet)
+                self._state = m is not None
         except Empty:
             self._state = False
         return self._state if last_state != self._state else None
@@ -434,8 +440,8 @@ def cmd_validate() -> CommandResult:
         logger.exception("Config contains errors: %s", ", ".join(errors))
         return "CONFIG_ERRORS"
 
-    vendor_id: str = "0x" + config.vendor_id.removeprefix("0x")
-    product_id: str = "0x" + config.product_id.removeprefix("0x")
+    vendor_id: str = config.vendor_id
+    product_id: str = config.product_id
 
     try:
         handler: DeviceHandler = get_device_handler(HANDLER_DB_PATH, vendor_id, product_id)
