@@ -9,9 +9,6 @@ init:
 sync:
     uv sync --all-extras
 
-tests:
-    uv run pytest --cov=src --cov-report=markdown
-
 build:
     uv run pyinstaller \
         --onefile \

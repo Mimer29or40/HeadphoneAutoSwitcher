@@ -13,8 +13,16 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pyinstaller>=6.21.0",
+    "pytest-check>=2.9.1",
     "pytest-cov>=7.1.0",
     "pytest>=9.1.1",
+]
+
+[tool.pytest]
+markers = [
+    "unit",
+    "integration",
+    "end_to_end",
 ]
 
 [tool.ruff]
@@ -38,6 +46,7 @@ ignore = [
     "A005",
     "A006",
     "ANN401",
+    "B024",
     "COM812",
     "D203",
     "D213",
@@ -72,6 +81,7 @@ ignore = [
     "S311",
     "S324",
     "T201",
+    "TC005",
 ]
 
 [tool.ruff.lint.isort]
