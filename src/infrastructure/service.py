@@ -33,7 +33,9 @@ logger: Logger = logging.getLogger("infrastructure.service")
 
 type Row = list[str]
 
-SOUND_VOLUME_VIEW_NOT_FOUND_ERROR: ErrorMsg = ErrorMsg("SoundVolumeView executable not found")
+SOUND_VOLUME_VIEW_NOT_FOUND_ERROR: ErrorMsg = ErrorMsg("SoundVolumeView: executable not found")
+SOUND_VOLUME_VIEW_NON_ZERO_RETURN: ErrorMsg = ErrorMsg("SoundVolumeView: non-zero exit code")
+
 _SENTINEL: Any = object()
 
 
@@ -56,14 +58,17 @@ class SoundVolumeView(SoundDeviceProvider):
 
     def _query(self) -> list[str]:
         try:
+            commands: list[str] = [str(self.sound_volume_view_path), "/stab", str(self.output_file)]
+            logger.debug("SoundVolumeView.exe: %s", commands)
             result: CompletedProcess[bytes] = subprocess.run(  # noqa: S603
-                [str(self.sound_volume_view_path), "/stab", str(self.output_file)],
+                commands,
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+            logger.debug("SoundVolumeView.exe exit code: 0x%08X", result.returncode)
             if not self.output_file.is_file():
-                raise RuntimeError(f"SoundVolumeView.exe exit code: 0x{result.returncode:08X}")
+                raise SoundDeviceProviderError(SOUND_VOLUME_VIEW_NON_ZERO_RETURN) from None
 
             # If the file is encoded in BOM_UTF16_LE, we remove those bits before decoding
             raw_query: bytes = self.output_file.read_bytes().removeprefix(BOM_UTF16_LE)
