@@ -20,3 +20,7 @@ class BaseValue(ABC):
 
 
 # ---------- Project Specific ---------- #
+
+# TODO(Ryan): Make value classes
+# class TitleStr(str):
+#     __slots__ = ()

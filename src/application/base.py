@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from abc import abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -21,7 +20,6 @@ class BaseApplication(ABC):
     description: str
     version: str
 
-    @abstractmethod
     def __post_init__(self) -> None:
         """Wire up use cases and controllers."""
 

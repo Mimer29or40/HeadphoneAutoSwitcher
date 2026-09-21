@@ -34,3 +34,7 @@ class BaseError(BaseException, ABC):
 
 
 # ---------- Project Specific ---------- #
+
+
+class SoundDeviceProviderError(BaseError):
+    """Exception raised when a SoundDeviceProvider fails."""

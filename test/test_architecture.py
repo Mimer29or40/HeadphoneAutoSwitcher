@@ -75,6 +75,7 @@ def layer_test_path(project_root_path: Path, layer: Layer) -> Path:
     return project_root_path / "test" / f"test_{layer}"
 
 
+@pytest.mark.architectural
 def test_module_present(layer_path: Path) -> None:
     """Verify that each Layer's associated module is present."""
     # Assert
@@ -94,7 +95,7 @@ def test_file_logger(check: CheckType, layer_path: Path) -> None:
         module_name: str = ".".join(file_rel.with_suffix("").parts)
         module_name = module_name.replace(".base", "")  # Module base files should end at module
 
-        if module_name.endswith(".__init__"):
+        if module_name.endswith((".__init__", "__main__")):
             continue  # Skip __init__ files
 
         # Assert

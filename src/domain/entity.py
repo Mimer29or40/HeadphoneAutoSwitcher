@@ -36,3 +36,12 @@ class BaseEntity(ABC):
 
 
 # ---------- Project Specific ---------- #
+
+
+@dataclass(eq=False)
+class SoundDevice(BaseEntity):  # TODO(Ryan): More fields
+    """Represents a sound device on the system."""
+
+    type: str
+    name: str
+    default: str

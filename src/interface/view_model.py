@@ -27,3 +27,13 @@ class ErrorViewModel(BaseViewModel):
 
 
 # ---------- Project Specific ---------- #
+
+
+@dataclass(frozen=True, slots=True)
+class SoundDeviceViewModel(BaseViewModel):
+    """Represents a SoundDevice."""
+
+    id: str
+    direction: str
+    name: str
+    default: str

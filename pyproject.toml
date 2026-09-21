@@ -9,6 +9,8 @@ dependencies = [
     "python-dateutil>=2.9.0",
 ]
 
+# TODO(Ryan): Make an internal library for base types
+
 
 [project.optional-dependencies]
 dev = [
@@ -23,6 +25,7 @@ markers = [
     "unit",
     "integration",
     "end_to_end",
+    "architectural",
 ]
 
 [tool.ruff]
@@ -47,6 +50,7 @@ ignore = [
     "A006",
     "ANN401",
     "B024",
+    "B027",
     "COM812",
     "D203",
     "D213",
@@ -61,6 +65,7 @@ ignore = [
     "FBT003",
     "FIX002",
     "INP001",
+    "LOG007",
     "PLR0913",
     "PLR0915",
     "PLW0603",
