@@ -44,8 +44,7 @@ class SoundDeviceController(BaseController):
 
     def handle_get_sound_devices(self) -> Result[list[SoundDeviceViewModel], ErrorViewModel]:
         """Handle getting sound devices."""
-        logger.info("Handling get sound devices request")
-        # TODO(Ryan): , extra={"context": {"name": name}}
+        logger.info("Handling use case: get_sound_devices_use_case", extra={"context": {}})
 
         try:
             request: GetSoundDevicesRequest = GetSoundDevicesRequest()
@@ -55,15 +54,13 @@ class SoundDeviceController(BaseController):
             return Result.err(validation_error_vm)
 
         if Result.is_ok(result):
-            logger.info("Sound device gathering success")
-            # TODO(Ryan): , extra={"context": {"project_id": str(result.value.id)}}
+            logger.info("Use case success: get_sound_devices_use_case", extra={"context": {}})
 
             success_vm: list[SoundDeviceViewModel] = self.sound_device_presenter.present_sound_devices(result.value)
             return Result.ok(success_vm)
 
         if Result.is_err(result):
-            logger.error("Sound device gathering failure")
-            # TODO(Ryan): , extra={"context": {"name": name, "error": result.value}}
+            logger.info("Use case failure: get_sound_devices_use_case", extra={"context": {"error": result.value}})
 
             error_vm: ErrorViewModel = self.sound_device_presenter.present_error(result.value)
             return Result.err(error_vm)

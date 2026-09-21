@@ -26,7 +26,8 @@ logger: Logger = logging.getLogger("infrastructure.application")
 
 APPLICATION_NAME: str = "Headphone Auto Switcher"
 APPLICATION_DESCRIPTION: str = (
-    "Application that listens for wireless headphone to automatically switch to and from its Windows sounds device."
+    "Application that listens for wireless headphone to automatically "
+    "switch to and from corresponding Windows sounds device."
 )
 APPLICATION_VERSION: str = "3.0.0a1"
 

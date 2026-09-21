@@ -34,6 +34,6 @@ class SoundDeviceViewModel(BaseViewModel):
     """Represents a SoundDevice."""
 
     id: str
-    direction: str
+    type: str
     name: str
     default: str
