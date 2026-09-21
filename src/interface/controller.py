@@ -6,17 +6,17 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from _ca.interface import BaseController
+from _ca.utils import Result
 from application.dto import GetSoundDevicesRequest
 from application.dto import SoundDeviceResponse
-from ca.interface import BaseController
-from ca.utils import Result
 
 if TYPE_CHECKING:
     from logging import Logger
 
+    from _ca.domain import ErrorMsg
+    from _ca.interface import ErrorViewModel
     from application.use_case import GetSoundDevicesUseCase
-    from ca.domain import ErrorMsg
-    from ca.interface import ErrorViewModel
     from interface.presenter import SoundDevicePresenter
     from interface.view_model import SoundDeviceViewModel
 

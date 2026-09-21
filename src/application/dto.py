@@ -9,8 +9,8 @@ from typing import Any
 from typing import Self
 from typing import override
 
-from ca.application import BaseRequest
-from ca.application import BaseResponse
+from _ca.application import BaseRequest
+from _ca.application import BaseResponse
 
 if TYPE_CHECKING:
     from logging import Logger

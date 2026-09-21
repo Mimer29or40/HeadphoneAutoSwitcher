@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ca.domain import BaseEntity
+from _ca.domain import BaseEntity
 
 if TYPE_CHECKING:
     from logging import Logger

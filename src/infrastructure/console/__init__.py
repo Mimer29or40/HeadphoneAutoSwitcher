@@ -12,9 +12,9 @@ from typing import override
 import click
 from click import ClickException
 
-from ca.infrastructure import LogConfigProvider
-from ca.infrastructure import configure_logging
-from ca.utils import Result
+from _ca.infrastructure import LogConfigProvider
+from _ca.infrastructure import configure_logging
+from _ca.utils import Result
 from infrastructure.application import Application
 from infrastructure.service import SoundVolumeView
 from interface.presenter import SoundDevicePresenter
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from logging import Logger
 
+    from _ca.interface import ErrorViewModel
     from application.dto import SoundDeviceResponse
-    from ca.interface import ErrorViewModel
     from domain.service import SoundDeviceProvider
 
 

@@ -7,7 +7,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from ca.domain import BaseService
+from _ca.domain import BaseService
 
 if TYPE_CHECKING:
     from logging import Logger

@@ -16,7 +16,7 @@ from typing import ClassVar
 from typing import override
 from uuid import UUID
 
-from ca.domain import ErrorMsg
+from _ca.domain import ErrorMsg
 from domain.entity import SoundDevice
 from domain.exception import SoundDeviceProviderError
 from domain.service import SoundDeviceProvider

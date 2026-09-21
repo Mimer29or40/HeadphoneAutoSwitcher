@@ -1,4 +1,4 @@
-"""Tests for domain.base."""
+"""Tests for _ca..utils."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from domain.base import Result
-from domain.base import ResultErr
-from domain.base import ResultOk
+from _ca.utils import Result
+from _ca.utils import ResultErr
+from _ca.utils import ResultOk
 
 if TYPE_CHECKING:
     pass

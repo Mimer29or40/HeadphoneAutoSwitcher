@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ca.interface import BaseViewModel
+from _ca.interface import BaseViewModel
 
 if TYPE_CHECKING:
     from logging import Logger

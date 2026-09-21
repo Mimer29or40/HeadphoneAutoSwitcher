@@ -7,7 +7,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from ca.interface import BasePresenter
+from _ca.interface import BasePresenter
 
 if TYPE_CHECKING:
     from logging import Logger

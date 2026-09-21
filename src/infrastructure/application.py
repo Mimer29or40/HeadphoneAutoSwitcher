@@ -8,8 +8,8 @@ from dataclasses import field
 from typing import TYPE_CHECKING
 from typing import override
 
+from _ca.application import BaseApplication
 from application.use_case import GetSoundDevicesUseCase
-from ca.application import BaseApplication
 from interface.controller import SoundDeviceController
 
 if TYPE_CHECKING:

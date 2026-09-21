@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from ca.domain import BaseError
+from _ca.domain import BaseError
 
 if TYPE_CHECKING:
     from logging import Logger

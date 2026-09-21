@@ -13,7 +13,7 @@ from typing import override
 if TYPE_CHECKING:
     from logging import Logger
 
-    from ca.application import BaseApplication
+    from _ca.application import BaseApplication
 
 
 logger: Logger = logging.getLogger("infrastructure")

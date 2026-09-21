@@ -11,13 +11,13 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import Self
 
-from ca.domain import BaseEntity
-from ca.domain import ErrorMsg
+from _ca.domain import BaseEntity
+from _ca.domain import ErrorMsg
 
 if TYPE_CHECKING:
     from logging import Logger
 
-    from ca.utils import Result
+    from _ca.utils import Result
 
 
 logger: Logger = logging.getLogger("application")

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from logging import Logger
 
-    from ca.domain import ErrorMsg
+    from _ca.domain import ErrorMsg
 
 
 logger: Logger = logging.getLogger("interface")

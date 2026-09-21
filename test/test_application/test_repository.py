@@ -6,22 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from test_application.conftest import DummyRepository
-
 if TYPE_CHECKING:
-    from application.repository import BaseRepository
-
-
-@pytest.mark.unit
-class TestBaseRepository:
-    """Tests for BaseRepository."""
-
-    def test_repository(self) -> None:
-        """Test for BaseRepository."""
-        _: BaseRepository = DummyRepository([])
-
-
-# ---------- Project Specific ---------- #
+    pass
 
 
 if __name__ == "__main__":
