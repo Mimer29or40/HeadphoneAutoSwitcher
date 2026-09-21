@@ -28,6 +28,9 @@ markers = [
     "architectural",
 ]
 
+[tool.uv]
+system-certs = true
+
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/
 fix = true
