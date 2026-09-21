@@ -8,8 +8,8 @@ from dataclasses import field
 from typing import TYPE_CHECKING
 from typing import override
 
-from application.base import BaseApplication
 from application.use_case import GetSoundDevicesUseCase
+from ca.application import BaseApplication
 from interface.controller import SoundDeviceController
 
 if TYPE_CHECKING:
@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 
 logger: Logger = logging.getLogger("infrastructure.application")
 
-
-# ---------- Project Specific ---------- #
 
 APPLICATION_NAME: str = "Headphone Auto Switcher"
 APPLICATION_DESCRIPTION: str = (

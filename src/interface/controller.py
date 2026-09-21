@@ -3,36 +3,25 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from application.dto import GetSoundDevicesRequest
 from application.dto import SoundDeviceResponse
-from domain.base import Result
+from ca.interface import BaseController
+from ca.utils import Result
 
 if TYPE_CHECKING:
     from logging import Logger
 
     from application.use_case import GetSoundDevicesUseCase
-    from domain.exception import ErrorMsg
+    from ca.domain import ErrorMsg
+    from ca.interface import ErrorViewModel
     from interface.presenter import SoundDevicePresenter
-    from interface.view_model import ErrorViewModel
     from interface.view_model import SoundDeviceViewModel
 
 
 logger: Logger = logging.getLogger("interface.controller")
-
-
-class BaseController(ABC):
-    """Base controller class, implementing Clean Architecture patterns."""
-
-
-# ---------- Project Specific ---------- #
-
-
-class Controller(BaseController):
-    """Base controller class, implementing Clean Architecture patterns."""
 
 
 @dataclass(frozen=True, slots=True)

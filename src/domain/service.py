@@ -7,6 +7,8 @@ from abc import ABC
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
+from ca.domain import BaseService
+
 if TYPE_CHECKING:
     from logging import Logger
     from uuid import UUID
@@ -15,13 +17,6 @@ if TYPE_CHECKING:
 
 
 logger: Logger = logging.getLogger("domain.service")
-
-
-class BaseService(ABC):
-    """Base service class, implementing Clean Architecture patterns."""
-
-
-# ---------- Project Specific ---------- #
 
 
 class SoundDeviceProvider(BaseService, ABC):

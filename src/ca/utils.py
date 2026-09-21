@@ -1,4 +1,4 @@
-"""Domain layer base."""
+"""Clean architecture utilities."""
 
 from __future__ import annotations
 
@@ -13,8 +13,7 @@ from typing import final
 if TYPE_CHECKING:
     from logging import Logger
 
-
-logger: Logger = logging.getLogger("domain")
+logger: Logger = logging.getLogger(__name__)
 
 
 class Result[T, E](ABC):
@@ -59,6 +58,3 @@ class ResultErr[Err](Result[Any, Err]):
     """The result of an operational failure, holding a value."""
 
     value: Err
-
-
-# ---------- Project Specific ---------- #

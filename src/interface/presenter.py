@@ -7,34 +7,16 @@ from abc import ABC
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 
-from interface.view_model import ErrorViewModel
+from ca.interface import BasePresenter
 
 if TYPE_CHECKING:
     from logging import Logger
 
     from application.dto import SoundDeviceResponse
-    from domain.exception import ErrorMsg
     from interface.view_model import SoundDeviceViewModel
 
 
 logger: Logger = logging.getLogger("interface.presenter")
-
-
-class BasePresenter(ABC):
-    """Base presenter class, implementing Clean Architecture patterns."""
-
-    @staticmethod
-    def present_error(error_msg: ErrorMsg) -> ErrorViewModel:
-        """Create an ErrorViewModel from an ErrorMsg."""
-        return ErrorViewModel(message=error_msg.message, code=error_msg.code)
-
-    @staticmethod
-    def present_validation_error(exception: ValueError) -> ErrorViewModel:
-        """Create an ErrorViewModel for a validation error."""
-        return ErrorViewModel(message=str(exception), code="VE")
-
-
-# ---------- Project Specific ---------- #
 
 
 class SoundDevicePresenter(BasePresenter, ABC):
