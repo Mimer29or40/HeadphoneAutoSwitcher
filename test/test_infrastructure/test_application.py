@@ -1,4 +1,4 @@
-"""Tests for application.port."""
+"""Tests for infrastructure.application."""
 
 from __future__ import annotations
 

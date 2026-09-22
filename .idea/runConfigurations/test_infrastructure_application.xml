@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="test domain base" type="tests" factoryName="Autodetect" folderName="test domain">
+  <configuration default="false" name="test infrastructure application" type="tests" factoryName="Autodetect" folderName="test infrastructure">
     <module name="headphone-auto-switcher" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
@@ -13,7 +13,7 @@
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="RUN_TOOL" value="true" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;$PROJECT_DIR$/test/test_domain/test_base.py&quot;" />
+    <option name="_new_target" value="&quot;$PROJECT_DIR$/test/test_infrastructure/test_application.py&quot;" />
     <option name="_new_targetType" value="&quot;PATH&quot;" />
     <method v="2" />
   </configuration>

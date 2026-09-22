@@ -29,7 +29,6 @@ layer0_domain_value: (__run_test__ "test/test_domain/test_value.py")
 
 layer1_application: (__run_test__ "test/test_application")
 layer1_application_dto: (__run_test__ "test/test_application/test_dto.py")
-layer1_application_port: (__run_test__ "test/test_application/test_port.py")
 layer1_application_repository: (__run_test__ "test/test_application/test_repository.py")
 layer1_application_use_case: (__run_test__ "test/test_application/test_use_case.py")
 
@@ -39,4 +38,5 @@ layer2_interface_presenter: (__run_test__ "test/test_interface/test_presenter.py
 layer2_interface_view_model: (__run_test__ "test/test_interface/test_view_model.py")
 
 layer3_infrastructure: (__run_test__ "test/test_infrastructure")
-layer3_infrastructure_runner: (__run_test__ "test/test_infrastructure/test_runner.py")
+layer3_infrastructure_application: (__run_test__ "test/test_infrastructure/test_application.py")
+layer3_infrastructure_service: (__run_test__ "test/test_infrastructure/test_service.py")

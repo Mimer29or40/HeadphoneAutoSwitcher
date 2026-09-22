@@ -93,9 +93,8 @@ def test_file_logger(check: CheckType, layer_path: Path) -> None:
 
         # Act
         module_name: str = ".".join(file_rel.with_suffix("").parts)
-        module_name = module_name.replace(".base", "")  # Module base files should end at module
 
-        if module_name.endswith((".__init__", "__main__")):
+        if module_name.endswith(("__init__", "__main__")):
             continue  # Skip __init__ files
 
         # Assert
@@ -165,6 +164,9 @@ def test_has_test_file(check: CheckType, layer_path: Path, layer_test_path: Path
     file_rel: Path
     for _, file_rel in _get_python_files(layer_path):
         test_file: Path = _get_test_file_from_rel(file_rel)
+
+        if file_rel.stem.endswith(("__init__", "__main__")):
+            continue  # Skip __init__ files
 
         # Act
         result: bool = test_file in layer_test_files
