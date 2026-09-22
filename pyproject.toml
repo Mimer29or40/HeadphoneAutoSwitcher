@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.scripts]
-hello = "infrastructure.console.__main__:main"
+cli = "infrastructure.cli:main"
 
 [tool.pytest]
 markers = [

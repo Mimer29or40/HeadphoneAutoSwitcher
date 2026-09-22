@@ -23,7 +23,7 @@ logger: Logger = logging.getLogger("infrastructure.application")
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
-class Application(BaseApplication):
+class HeadphoneAutoSwitcherApplication(BaseApplication):
     """HeadphoneAutoSwitcher application container."""
 
     name: str = "Headphone Auto Switcher"

@@ -18,7 +18,7 @@ from application.use_case import GetSoundDevicesUseCase
 from domain.entity import SoundDevice
 from domain.exception import SoundDeviceProviderError
 from domain.service import SoundDeviceProvider
-from infrastructure.application import Application
+from infrastructure.app import HeadphoneAutoSwitcherApplication
 from interface.controller import SoundDeviceController
 from interface.presenter import SoundDevicePresenter
 from interface.view_model import SoundDeviceViewModel
@@ -322,9 +322,9 @@ def application(
     app_version: str,
     sound_volume_view: SoundDeviceProvider,
     sound_device_presenter: SoundDevicePresenter,
-) -> Application:
+) -> HeadphoneAutoSwitcherApplication:
     """Application fixture."""
-    return Application(
+    return HeadphoneAutoSwitcherApplication(
         name=app_name,
         description=app_description,
         version=app_version,

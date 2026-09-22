@@ -1,82 +1,38 @@
-"""Infrastructure for console based interactions."""
+"""Infrastructure for command line based interactions."""
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+import sys
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import assert_never
-from typing import override
 
 import click
 from click import ClickException
 
-from _ca.infrastructure import LogConfigProvider
 from _ca.infrastructure import configure_logging
 from _ca.utils import Result
-from infrastructure.application import Application
+from infrastructure.app import HeadphoneAutoSwitcherApplication
+from infrastructure.console import ConsoleLogConfigProvider
+from infrastructure.console import ConsoleSoundDevicePresenter
 from infrastructure.service import SoundVolumeView
-from interface.presenter import SoundDevicePresenter
-from interface.view_model import SoundDeviceViewModel
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from logging import Logger
 
+    from _ca.infrastructure import LogConfigProvider
     from _ca.interface import ErrorViewModel
-    from application.dto import SoundDeviceResponse
     from domain.service import SoundDeviceProvider
+    from interface.presenter import SoundDevicePresenter
+    from interface.view_model import SoundDeviceViewModel
 
 
 logger: Logger = logging.getLogger("infrastructure.console")
 
 
 type ConsoleResult = str | int | None
-
-
-@dataclass(frozen=True, slots=True)
-class DefaultLogConfigProvider(LogConfigProvider):
-    """Default logging configuration."""
-
-    level: str = "WARNING"
-    format: dict[str, Any] | None = None
-
-    @override
-    def get(self) -> dict[str, Any]:
-        """Get the logging configuration."""
-        format: dict[str, Any] | None = self.format
-        if format is None:
-            format = {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}
-
-        return {
-            "version": 1,
-            "incremental": False,
-            "disable_existing_loggers": False,
-            "formatters": {"standard": format},
-            "handlers": {
-                "console": {
-                    "class": "logging.StreamHandler",
-                    "formatter": "standard",
-                    "level": self.level,
-                    "stream": "ext://sys.stdout",
-                },
-            },
-            "root": {"level": self.level, "handlers": ["console"]},
-        }
-
-
-class ConsoleSoundDevicePresenter(SoundDevicePresenter):
-    """SoundDevicePresenter for the console."""
-
-    @override
-    def present_sound_device(self, response: SoundDeviceResponse) -> SoundDeviceViewModel:
-        return SoundDeviceViewModel(
-            id=response.id,
-            type=response.type,
-            name=response.name,
-            default=response.default,
-        )
 
 
 def _make_table[T: Sequence](rows: list[T]) -> list[str]:
@@ -95,7 +51,7 @@ def _make_table[T: Sequence](rows: list[T]) -> list[str]:
     return [format.format(*r) for r in rows]
 
 
-def create_cli(app: Application) -> click.Group:  # TODO(Ryan): Make this a class
+def create_cli(app: HeadphoneAutoSwitcherApplication) -> click.Group:  # TODO(Ryan): Make this a class
     """Create the CLI."""
 
     @click.group(help=app.description, invoke_without_command=True)
@@ -107,14 +63,15 @@ def create_cli(app: Application) -> click.Group:  # TODO(Ryan): Make this a clas
         help="Set the console log level [default: WARNING]",
     )
     @click.pass_context
-    def cli(ctx: click.Context, log_level: str) -> None:
+    def cli(ctx: click.Context, log_level: str) -> ConsoleResult:
         """Main CLI entry point."""
         # Configure logging
-        log_config_provider: DefaultLogConfigProvider = DefaultLogConfigProvider(level=log_level)
+        log_config_provider: LogConfigProvider = ConsoleLogConfigProvider(level=log_level)
         configure_logging(log_config_provider)
         if ctx.invoked_subcommand is None:
-            # Drop into shell  # TODO(Ryan): Interactive shell
-            pass
+            logger.warning("Not implemented.")  # TODO(Ryan): Interactive shell
+            return -1
+        return None
 
     @cli.command()
     def sound() -> ConsoleResult:
@@ -145,15 +102,15 @@ def create_cli(app: Application) -> click.Group:  # TODO(Ryan): Make this a clas
     return cli
 
 
-def main(*args: Any) -> ConsoleResult:
-    """Main entry point for the console application."""
+def run(*args: Any) -> ConsoleResult:
+    """Run the CLI framework."""
     result: ConsoleResult
     try:
         # Create application with dependencies
         sound_device_provider: SoundDeviceProvider = SoundVolumeView()
         sound_device_presenter: SoundDevicePresenter = ConsoleSoundDevicePresenter()
 
-        app: Application = Application(
+        app: HeadphoneAutoSwitcherApplication = HeadphoneAutoSwitcherApplication(
             sound_device_provider=sound_device_provider,
             sound_device_presenter=sound_device_presenter,
         )
@@ -175,4 +132,15 @@ def main(*args: Any) -> ConsoleResult:
     return result
 
 
-# ---------- Project Specific ---------- #
+def main() -> ConsoleResult:
+    """Main entry point for the console application."""
+    args: list[str] = sys.argv[1:]
+    result: ConsoleResult = run(*args)
+    sys.exit(result)
+
+
+if __name__ == "__main__":
+    from multiprocessing import freeze_support
+
+    freeze_support()
+    main()
