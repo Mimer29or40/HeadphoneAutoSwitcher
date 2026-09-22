@@ -70,12 +70,12 @@ class ConsoleSoundDevicePresenter(SoundDevicePresenter):
     """SoundDevicePresenter for the console."""
 
     @override
-    def present_sound_device(self, sound_device: SoundDeviceResponse) -> SoundDeviceViewModel:
+    def present_sound_device(self, response: SoundDeviceResponse) -> SoundDeviceViewModel:
         return SoundDeviceViewModel(
-            id=sound_device.id,
-            type=sound_device.type,
-            name=sound_device.name,
-            default=sound_device.default,
+            id=response.id,
+            type=response.type,
+            name=response.name,
+            default=response.default,
         )
 
 

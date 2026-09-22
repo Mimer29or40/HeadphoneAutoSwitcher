@@ -23,9 +23,9 @@ class SoundDevicePresenter(BasePresenter, ABC):
     """Presenter for SoundDevices."""
 
     @abstractmethod
-    def present_sound_device(self, sound_device: SoundDeviceResponse) -> SoundDeviceViewModel:
+    def present_sound_device(self, response: SoundDeviceResponse) -> SoundDeviceViewModel:
         """Convert response to view model."""
 
-    def present_sound_devices(self, sound_devices: list[SoundDeviceResponse]) -> list[SoundDeviceViewModel]:
+    def present_sound_devices(self, responses: list[SoundDeviceResponse]) -> list[SoundDeviceViewModel]:
         """Convert response to view model."""
-        return [self.present_sound_device(sound_device) for sound_device in sound_devices]
+        return [self.present_sound_device(response) for response in responses]

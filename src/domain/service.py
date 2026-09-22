@@ -27,5 +27,5 @@ class SoundDeviceProvider(BaseService, ABC):
         """Find a SoundDevice by its UUID, if available on the system."""
 
     @abstractmethod
-    def get_all(self) -> list[SoundDevice]:
+    def find_all(self) -> list[SoundDevice]:
         """Get a list of all SoundDevices on the system."""

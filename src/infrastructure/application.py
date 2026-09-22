@@ -22,21 +22,16 @@ if TYPE_CHECKING:
 logger: Logger = logging.getLogger("infrastructure.application")
 
 
-APPLICATION_NAME: str = "Headphone Auto Switcher"
-APPLICATION_DESCRIPTION: str = (
-    "Application that listens for wireless headphone to automatically "
-    "switch to and from corresponding Windows sounds device."
-)
-APPLICATION_VERSION: str = "3.0.0a1"
-
-
 @dataclass(frozen=True, kw_only=True, slots=True)
 class Application(BaseApplication):
     """HeadphoneAutoSwitcher application container."""
 
-    name: str = APPLICATION_NAME
-    description: str = APPLICATION_DESCRIPTION
-    version: str = APPLICATION_VERSION
+    name: str = "Headphone Auto Switcher"
+    description: str = (
+        "Application that listens for wireless headphone to automatically "
+        "switch to and from corresponding Windows sounds device."
+    )
+    version: str = "3.0.0a1"
 
     # Services
     sound_device_provider: SoundDeviceProvider

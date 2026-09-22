@@ -51,6 +51,11 @@ def _get_test_file_from_rel(file_rel: Path) -> Path:
     return Path("/".join(parts))
 
 
+def _get_module_node(file: Path) -> ast.Module:
+    source: str = file.read_text()
+    return ast.parse(source)
+
+
 @pytest.fixture(params=tuple(_LAYERS))
 def layer(request: pytest.FixtureRequest) -> Layer:
     """Project Layer fixture."""
@@ -64,15 +69,15 @@ def level(layer: Layer) -> Level:
 
 
 @pytest.fixture
-def layer_path(project_root_path: Path, layer: Layer) -> Path:
+def layer_path(project_src_path: Path, layer: Layer) -> Path:
     """Project Layer path fixture."""
-    return project_root_path / "src" / layer
+    return project_src_path / layer
 
 
 @pytest.fixture
-def layer_test_path(project_root_path: Path, layer: Layer) -> Path:
+def layer_test_path(project_test_path: Path, layer: Layer) -> Path:
     """Project Layer test path fixture."""
-    return project_root_path / "test" / f"test_{layer}"
+    return project_test_path / f"test_{layer}"
 
 
 @pytest.mark.architectural
@@ -88,14 +93,13 @@ def test_file_logger(check: CheckType, layer_path: Path) -> None:
     file: Path
     file_rel: Path
     for file, file_rel in _get_python_files(layer_path):
-        source: str = file.read_text()
-        module_node: ast.Module = ast.parse(source)
+        module_node: ast.Module = _get_module_node(file)
 
         # Act
         module_name: str = ".".join(file_rel.with_suffix("").parts)
 
         if module_name.endswith(("__init__", "__main__")):
-            continue  # Skip __init__ files
+            continue  # Skip dunder files
 
         # Assert
         found_logger: bool = False
@@ -129,8 +133,7 @@ def test_layer_dependencies(check: CheckType, layer: Layer, level: Level, layer_
     file: Path
     file_rel: Path
     for file, file_rel in _get_python_files(layer_path):
-        source: str = file.read_text()
-        module_node: ast.Module = ast.parse(source)
+        module_node: ast.Module = _get_module_node(file)
 
         node: ast.AST
         for node in ast.walk(module_node):
@@ -157,7 +160,7 @@ def test_layer_dependencies(check: CheckType, layer: Layer, level: Level, layer_
 
 
 def test_has_test_file(check: CheckType, layer_path: Path, layer_test_path: Path) -> None:
-    """Verify that each python has a test file."""
+    """Verify that each Python file has a test file."""
     # Arrange
     layer_test_files: dict[Path, Path] = {r: f for f, r in _get_python_files(layer_test_path)}
 
@@ -166,7 +169,7 @@ def test_has_test_file(check: CheckType, layer_path: Path, layer_test_path: Path
         test_file: Path = _get_test_file_from_rel(file_rel)
 
         if file_rel.stem.endswith(("__init__", "__main__")):
-            continue  # Skip __init__ files
+            continue  # Skip dunder files
 
         # Act
         result: bool = test_file in layer_test_files
@@ -175,6 +178,36 @@ def test_has_test_file(check: CheckType, layer_path: Path, layer_test_path: Path
         with check:
             if not result:
                 pytest.fail(f"File must have a test file: '{file_rel}'")
+
+
+def test_has_test_class(check: CheckType, layer_path: Path, project_test_path: Path) -> None:
+    """Verify that each defined class has a test class."""
+    # Arrange
+    file: Path
+    file_rel: Path
+    for file, file_rel in _get_python_files(layer_path):
+        if file_rel.stem.endswith(("__init__", "__main__")):
+            continue  # Skip dunder files
+
+        test_file: Path = project_test_path / _get_test_file_from_rel(file_rel)
+
+        file_node: ast.Module = _get_module_node(file)
+        file_classes: list[str] = sorted([n.name for n in ast.walk(file_node) if isinstance(n, ast.ClassDef)])
+
+        test_file_node: ast.Module = _get_module_node(test_file)
+        test_file_classes: list[str] = sorted([n.name for n in ast.walk(test_file_node) if isinstance(n, ast.ClassDef)])
+
+        file_cls: str
+        for file_cls in file_classes:
+            test_cls_name: str = "Test" + file_cls
+
+            # Act
+            result: bool = test_cls_name in test_file_classes
+
+            # Assert
+            with check:
+                if not result:
+                    pytest.fail(f"Class must have a test class: '{file_cls}'")
 
 
 if __name__ == "__main__":

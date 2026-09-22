@@ -35,7 +35,7 @@ class BaseEntity(ABC):
 
 
 @dataclass(frozen=True, slots=True)
-class ErrorMsg:
+class ErrorMsg:  # TODO(Ryan): Move to domain.value
     """Exception raised when an error occurs."""
 
     message: str

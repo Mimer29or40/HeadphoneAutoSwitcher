@@ -32,6 +32,13 @@ markers = [
     "architectural",
 ]
 
+[tool.coverage.report]
+exclude_also = [
+    "assert_never(.*)",
+    'if __name__ == .__main__.:',
+    'if TYPE_CHECKING:',
+]
+
 [tool.uv]
 system-certs = true
 

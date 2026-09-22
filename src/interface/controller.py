@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from typing import assert_never
 
 from _ca.interface import BaseController
 from _ca.utils import Result
@@ -35,12 +36,9 @@ class SoundDeviceController(BaseController):
         """Handle getting sound devices."""
         logger.info("Handling use case: get_sound_devices_use_case", extra={"context": {}})
 
-        try:
-            request: GetSoundDevicesRequest = GetSoundDevicesRequest()
-            result: Result[list[SoundDeviceResponse], ErrorMsg] = self.get_sound_devices_use_case.execute(request)
-        except ValueError as e:
-            validation_error_vm: ErrorViewModel = self.sound_device_presenter.present_validation_error(e)
-            return Result.err(validation_error_vm)
+        # GetSoundDevicesRequest will never raise a ValueError so don't guard from validation errors
+        request: GetSoundDevicesRequest = GetSoundDevicesRequest()
+        result: Result[list[SoundDeviceResponse], ErrorMsg] = self.get_sound_devices_use_case.execute(request)
 
         if Result.is_ok(result):
             logger.info("Use case success: get_sound_devices_use_case", extra={"context": {}})
@@ -54,4 +52,4 @@ class SoundDeviceController(BaseController):
             error_vm: ErrorViewModel = self.sound_device_presenter.present_error(result.value)
             return Result.err(error_vm)
 
-        raise RuntimeError  # This will never happen
+        assert_never(result)  # ty:ignore[type-assertion-failure]

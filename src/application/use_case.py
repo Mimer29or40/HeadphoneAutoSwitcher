@@ -38,7 +38,7 @@ class GetSoundDevicesUseCase(BaseUseCase):
     def execute(self, request: GetSoundDevicesRequest) -> Result[list[SoundDeviceResponse], ErrorMsg]:
         _: dict[str, Any] = request.convert()
         try:
-            devices: list[SoundDevice] = self.sound_device_provider.get_all()
+            devices: list[SoundDevice] = self.sound_device_provider.find_all()
             if len(devices) == 0:
                 return Result.err(NO_SOUND_DEVICES_FOUND_ERROR_MSG)
 

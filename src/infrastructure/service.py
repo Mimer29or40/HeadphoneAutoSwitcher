@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import TYPE_CHECKING
-from typing import Any
 from typing import ClassVar
 from typing import override
 from uuid import UUID
@@ -33,27 +32,46 @@ type Row = list[str]
 SOUND_VOLUME_VIEW_NOT_FOUND_ERROR: ErrorMsg = ErrorMsg("SoundVolumeView: executable not found")
 SOUND_VOLUME_VIEW_NON_ZERO_RETURN: ErrorMsg = ErrorMsg("SoundVolumeView: non-zero exit code")
 
-_SENTINEL: Any = object()
+DEFAULT_SOUND_VOLUME_VIEW_PATH: Path = Path("SoundVolumeView.exe")
+DEFAULT_SOUND_VOLUME_VIEW_OUTPUT_FILE: Path = Path(tempfile.gettempdir()) / "SoundVolumeView-Output.txt"
 
 
 @dataclass(frozen=True, slots=True)
 class SoundVolumeView(SoundDeviceProvider):
     """SoundDeviceProvider with SoundVolumeView."""
 
-    sound_volume_view_path: Path = _SENTINEL
-    output_file: Path = _SENTINEL
+    sound_volume_view_path: Path = DEFAULT_SOUND_VOLUME_VIEW_PATH
+    output_file: Path = DEFAULT_SOUND_VOLUME_VIEW_OUTPUT_FILE
 
-    def __post_init__(self) -> None:
-        """Fill in the blanks."""
-        if self.sound_volume_view_path is _SENTINEL:
-            sound_volume_view_path: Path = Path("SoundVolumeView.exe")
-            object.__setattr__(self, "sound_volume_view_path", sound_volume_view_path)
+    @override
+    def find(self, device_id: UUID) -> SoundDevice | None:
+        query: list[Row] = self._query_device_rows()
 
-        if self.output_file is _SENTINEL:
-            output_file: Path = Path(tempfile.gettempdir()) / "SoundVolumeView-Output.txt"
-            object.__setattr__(self, "output_file", output_file)
+        row: Row
+        for row in query:
+            extracted_id: UUID | None = self._extract_uuid(row)
+            if extracted_id == device_id:
+                device: SoundDevice = self._create_device(device_id, row)
+                return device
+        return None
 
-    def _query(self) -> list[str]:
+    @override
+    def find_all(self) -> list[SoundDevice]:
+        query: list[Row] = self._query_device_rows()
+
+        sound_devices: list[SoundDevice] = []
+        row: Row
+        for row in query:
+            device_id: UUID | None = self._extract_uuid(row)
+            if device_id is None:  # pragma: no cover
+                continue
+
+            device: SoundDevice = self._create_device(device_id, row)
+            sound_devices.append(device)
+
+        return sound_devices
+
+    def _query(self) -> list[str]:  # pragma: no cover
         try:
             commands: list[str] = [str(self.sound_volume_view_path), "/stab", str(self.output_file)]
             logger.debug("SoundVolumeView.exe: %s", commands)
@@ -70,16 +88,15 @@ class SoundVolumeView(SoundDeviceProvider):
             # If the file is encoded in BOM_UTF16_LE, we remove those bits before decoding
             raw_query: bytes = self.output_file.read_bytes().removeprefix(BOM_UTF16_LE)
             return raw_query.decode("utf-16le").splitlines()
-        except FileNotFoundError:
+        except OSError:
             raise SoundDeviceProviderError(SOUND_VOLUME_VIEW_NOT_FOUND_ERROR) from None
         finally:
             self.output_file.unlink(missing_ok=True)
 
-    def _query_device_rows(self) -> list[Row]:
-        device_rows: list[Row] = []
-
+    def _query_device_rows(self) -> list[Row]:  # pragma: no cover
         query: list[str] = self._query()
 
+        device_rows: list[Row] = []
         line: str
         for line in query[1:]:  # Drop Header Row
             row: Row = line.split("\t")
@@ -92,7 +109,7 @@ class SoundVolumeView(SoundDeviceProvider):
 
         return device_rows
 
-    def _extract_uuid(self, row: Row) -> UUID | None:
+    def _extract_uuid(self, row: Row) -> UUID | None:  # pragma: no cover
         registry_key: str = row[self.COLUMN_REGISTRY_KEY]
         uuid_match: re.Match[str] | None = self.UUID_PATTERN.search(registry_key)
         if uuid_match is None:
@@ -101,36 +118,19 @@ class SoundVolumeView(SoundDeviceProvider):
         uuid: UUID = UUID(uuid_match.group(1))
         return uuid
 
-    @override
-    def find(self, device_id: UUID) -> SoundDevice | None:
-        pass
+    def _create_device(self, device_id: UUID, row: Row) -> SoundDevice:  # pragma: no cover
+        direction: str = row[self.COLUMN_DIRECTION]
+        device_name: str = row[self.COLUMN_DEVICE_NAME]
+        default: str = row[self.COLUMN_DEFAULT]
 
-    @override
-    def get_all(self) -> list[SoundDevice]:
-        query: list[Row] = self._query_device_rows()
-
-        sound_devices: list[SoundDevice] = []
-        row: Row
-        for row in query:
-            device_id: UUID | None = self._extract_uuid(row)
-            if device_id is None:
-                continue
-
-            direction: str = row[self.COLUMN_DIRECTION]
-            device_name: str = row[self.COLUMN_DEVICE_NAME]
-            default: str = row[self.COLUMN_DEFAULT]
-
-            device: SoundDevice = SoundDevice(
-                type=direction,
-                name=device_name,
-                default=default,
-            )
-            device.id = device_id
-            logger.debug("Loaded SoundDevice: %s", device)
-
-            sound_devices.append(device)
-
-        return sound_devices
+        device: SoundDevice = SoundDevice(
+            type=direction,
+            name=device_name,
+            default=default,
+        )
+        device.id = device_id
+        logger.debug("Loaded SoundDevice: %s", device)
+        return device
 
     COLUMN_NAME: ClassVar[int] = 0
     COLUMN_TYPE: ClassVar[int] = 1
@@ -157,6 +157,7 @@ class SoundVolumeView(SoundDeviceProvider):
     COLUMN_REGISTRY_KEY: ClassVar[int] = 22
     COLUMN_SPEAKERS_CONFIG: ClassVar[int] = 23
     COLUMN_DEFAULT_FORMAT: ClassVar[int] = 24
+    COLUMN_LAST: ClassVar[int] = COLUMN_DEFAULT_FORMAT
 
     UUID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
         r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
