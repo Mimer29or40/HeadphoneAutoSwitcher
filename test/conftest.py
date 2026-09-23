@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import logging.config
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -13,11 +14,13 @@ from typing import override
 import pytest
 
 from _ca.domain import ErrorMsg
+from application.dto import GetSoundDevicesRequest
 from application.dto import SoundDeviceResponse
 from application.use_case import GetSoundDevicesUseCase
 from domain.entity import SoundDevice
 from domain.exception import SoundDeviceProviderError
 from domain.service import SoundDeviceProvider
+from domain.value import SoundDeviceType
 from infrastructure.app import HeadphoneAutoSwitcherApplication
 from interface.controller import SoundDeviceController
 from interface.presenter import SoundDevicePresenter
@@ -188,7 +191,35 @@ def make_parametrize(
 # ---------- Domain Layer ---------- #
 
 
-DUMMY_SOUND_DEVICE_PROVIDER_ERROR: ErrorMsg = ErrorMsg("Dummy SoundDeviceProvider error.")
+@pytest.fixture
+def sound_device() -> SoundDevice:
+    """SoundDevice fixture."""
+    return SoundDevice(type=SoundDeviceType.INPUT, name="name", selected=False)
+
+
+@pytest.fixture
+def sound_devices() -> list[SoundDevice]:
+    """SoundDevice list fixture."""
+    devices: list[SoundDevice] = [
+        SoundDevice(type=type, name=f"name{i}", selected=False)
+        for type, i in itertools.product((SoundDeviceType.INPUT, SoundDeviceType.OUTPUT), range(5))
+    ]
+
+    for device_type in SoundDeviceType:
+        device: SoundDevice | None = next((d for d in devices if d.type == device_type), None)
+        if device is not None:
+            device.selected = True
+
+    return devices
+
+
+DUMMY_SOUND_DEVICE_PROVIDER_ERROR_MSG: ErrorMsg = ErrorMsg("Dummy SoundDeviceProvider error.")
+
+
+@pytest.fixture
+def dummy_sound_device_provider_error_msg() -> ErrorMsg:
+    """Dummy SoundDeviceProvider ErrorMsg fixture."""
+    return DUMMY_SOUND_DEVICE_PROVIDER_ERROR_MSG
 
 
 @dataclass(frozen=True, slots=True)
@@ -215,13 +246,7 @@ class DummySoundDeviceProvider(SoundDeviceProvider):
     def _raise(self) -> None:
         """Raise the SoundDeviceProviderError if configured to do so."""
         if self.should_raise:
-            raise SoundDeviceProviderError(DUMMY_SOUND_DEVICE_PROVIDER_ERROR)
-
-
-@pytest.fixture
-def sound_devices() -> list[SoundDevice]:
-    """SoundDevices fixture."""
-    return [SoundDevice(type="type", name=f"name{i}", default="default") for i in range(3)]
+            raise SoundDeviceProviderError(DUMMY_SOUND_DEVICE_PROVIDER_ERROR_MSG)
 
 
 @pytest.fixture
@@ -243,6 +268,12 @@ def sound_device_provider(
 
 
 # ---------- Application Layer ---------- #
+
+
+@pytest.fixture
+def get_sound_devices_request() -> GetSoundDevicesRequest:
+    """GetSoundDevicesRequest fixture."""
+    return GetSoundDevicesRequest()
 
 
 @pytest.fixture
@@ -272,7 +303,7 @@ class DummySoundDevicePresenter(SoundDevicePresenter):
             id=response.id,
             type=response.type,
             name=response.name,
-            default=response.default,
+            default=response.selected,
         )
 
 

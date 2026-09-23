@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from conftest import DUMMY_SOUND_DEVICE_PROVIDER_ERROR
+from conftest import DUMMY_SOUND_DEVICE_PROVIDER_ERROR_MSG
 from conftest import make_parametrize
 
 from _ca.utils import Result
@@ -61,7 +61,7 @@ class TestGetSoundDevicesUseCase:
 
         # Assert
         assert Result.is_err(result)
-        assert result.value == DUMMY_SOUND_DEVICE_PROVIDER_ERROR
+        assert result.value == DUMMY_SOUND_DEVICE_PROVIDER_ERROR_MSG
 
 
 if __name__ == "__main__":

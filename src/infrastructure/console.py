@@ -60,5 +60,5 @@ class ConsoleSoundDevicePresenter(SoundDevicePresenter):
             id=response.id,
             type=response.type,
             name=response.name,
-            default=response.default,
+            default=response.selected,
         )

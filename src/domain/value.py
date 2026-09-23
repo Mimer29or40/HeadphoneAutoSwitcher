@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from enum import Enum
+from enum import auto
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -12,6 +14,9 @@ if TYPE_CHECKING:
 logger: Logger = logging.getLogger("domain.value")
 
 
-# TODO(Ryan): Make value classes
-# class TitleStr(str):
-#     __slots__ = ()
+class SoundDeviceType(Enum):
+    """Sound device types."""
+
+    UNKNOWN = auto()
+    INPUT = auto()
+    OUTPUT = auto()

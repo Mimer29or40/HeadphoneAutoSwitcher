@@ -11,6 +11,8 @@ from _ca.domain import BaseEntity
 if TYPE_CHECKING:
     from logging import Logger
 
+    from domain.value import SoundDeviceType
+
 
 logger: Logger = logging.getLogger("domain.entity")
 
@@ -19,6 +21,6 @@ logger: Logger = logging.getLogger("domain.entity")
 class SoundDevice(BaseEntity):  # TODO(Ryan): More fields
     """Represents a sound device on the system."""
 
-    type: str
+    type: SoundDeviceType
     name: str
-    default: str
+    selected: bool

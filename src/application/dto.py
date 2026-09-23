@@ -41,7 +41,7 @@ class SoundDeviceResponse(BaseResponse):  # TODO(Ryan): Update when SoundDevice 
     id: str
     name: str
     type: str
-    default: str
+    selected: str
 
     @classmethod
     @override
@@ -49,6 +49,6 @@ class SoundDeviceResponse(BaseResponse):  # TODO(Ryan): Update when SoundDevice 
         return cls(
             id=str(entity.id),
             name=entity.name,
-            type=entity.type,
-            default=entity.default,
+            type=entity.type.name.lower(),
+            selected="Selected" if entity.selected else "Not Selected",
         )

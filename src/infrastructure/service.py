@@ -19,6 +19,7 @@ from _ca.domain import ErrorMsg
 from domain.entity import SoundDevice
 from domain.exception import SoundDeviceProviderError
 from domain.service import SoundDeviceProvider
+from domain.value import SoundDeviceType
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -119,14 +120,17 @@ class SoundVolumeView(SoundDeviceProvider):
         return uuid
 
     def _create_device(self, device_id: UUID, row: Row) -> SoundDevice:  # pragma: no cover
-        direction: str = row[self.COLUMN_DIRECTION]
+        direction: SoundDeviceType = {
+            "Capture": SoundDeviceType.INPUT,
+            "Render": SoundDeviceType.OUTPUT,
+        }[row[self.COLUMN_DIRECTION]]
         device_name: str = row[self.COLUMN_DEVICE_NAME]
-        default: str = row[self.COLUMN_DEFAULT]
+        selected: bool = row[self.COLUMN_DEFAULT] != ""
 
         device: SoundDevice = SoundDevice(
             type=direction,
             name=device_name,
-            default=default,
+            selected=selected,
         )
         device.id = device_id
         logger.debug("Loaded SoundDevice: %s", device)

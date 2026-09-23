@@ -10,14 +10,16 @@ from typing import Any
 import pytest
 from conftest import make_parametrize
 
-from domain.entity import SoundDevice
 from domain.exception import SoundDeviceProviderError
+from domain.value import SoundDeviceType
 from infrastructure.service import SOUND_VOLUME_VIEW_NON_ZERO_RETURN
 from infrastructure.service import SOUND_VOLUME_VIEW_NOT_FOUND_ERROR
 from infrastructure.service import SoundVolumeView
 
 if TYPE_CHECKING:
     from uuid import UUID
+
+    from domain.entity import SoundDevice
 
 
 class TestSoundVolumeView:
@@ -54,9 +56,12 @@ class TestSoundVolumeView:
             line: list[str] = [""] * (SoundVolumeView.COLUMN_LAST + 1)
 
             line[SoundVolumeView.COLUMN_TYPE] = "Device"
-            line[SoundVolumeView.COLUMN_DIRECTION] = device.type
+            line[SoundVolumeView.COLUMN_DIRECTION] = {
+                SoundDeviceType.INPUT: "Capture",
+                SoundDeviceType.OUTPUT: "Render",
+            }[device.type]
             line[SoundVolumeView.COLUMN_DEVICE_NAME] = device.name
-            line[SoundVolumeView.COLUMN_DEFAULT] = device.default
+            line[SoundVolumeView.COLUMN_DEFAULT] = "Default" if device.selected else ""
             line[SoundVolumeView.COLUMN_REGISTRY_KEY] = str(device.id)
 
             lines.append("\t".join(line))
@@ -117,11 +122,10 @@ class TestSoundVolumeView:
             # Assert
             assert result == expected
 
-        def test_not_found(self, sound_device_provider: SoundVolumeView) -> None:
+        def test_not_found(self, sound_device: SoundDevice, sound_device_provider: SoundVolumeView) -> None:
             """Test for SoundVolumeView.find() when a SoundDevice is not found."""
             # Arrange
-            expected: SoundDevice = SoundDevice(type="type", name="name", default="default")
-            device_id: UUID = expected.id
+            device_id: UUID = sound_device.id
 
             # Act
             result: SoundDevice | None = sound_device_provider.find(device_id)

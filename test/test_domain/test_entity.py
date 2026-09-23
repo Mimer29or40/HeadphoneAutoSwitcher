@@ -18,7 +18,7 @@ class TestSoundDevice:
 
     def test_dummy(self) -> None:
         """Dummy test."""
-        _: SoundDevice = SoundDevice(type="type", name="name", default="default")
+        _: SoundDevice = SoundDevice(type="type", name="name", selected="default")
 
 
 if __name__ == "__main__":

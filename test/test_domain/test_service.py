@@ -36,7 +36,7 @@ class TestSoundDeviceProvider:
         def test_not_found(self, sound_device_provider: SoundDeviceProvider) -> None:
             """Test for SoundDeviceProvider.find() when a SoundDevice is not found."""
             # Arrange
-            expected: SoundDevice = SoundDevice(type="type", name="name", default="default")
+            expected: SoundDevice = SoundDevice(type="type", name="name", selected="default")
             device_id: UUID = expected.id
 
             # Act
