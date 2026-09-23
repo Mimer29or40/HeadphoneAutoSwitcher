@@ -83,8 +83,8 @@ def create_cli(app: HeadphoneAutoSwitcherApplication) -> click.Group:  # TODO(Ry
         if Result.is_ok(result):
             devices: list[SoundDeviceViewModel] = result.value
 
-            rows: list[list[str]] = [["Name", "Type", "Default"]]
-            rows.extend(sorted([[d.name, d.type, d.default] for d in devices]))
+            rows: list[list[str]] = [["Name", "Type", "Selected"]]
+            rows.extend(sorted([[d.name, d.type, d.selected] for d in devices]))
 
             line: str
             for line in _make_table(rows):

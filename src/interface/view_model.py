@@ -22,4 +22,4 @@ class SoundDeviceViewModel(BaseViewModel):
     id: str
     type: str
     name: str
-    default: str
+    selected: str
