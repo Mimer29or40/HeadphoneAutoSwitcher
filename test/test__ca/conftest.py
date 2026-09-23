@@ -8,7 +8,10 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import ClassVar
 from typing import Self
+from typing import assert_never
 from typing import override
+
+import pytest
 
 from _ca.application import BaseApplication
 from _ca.application import BaseOutcome
@@ -22,7 +25,7 @@ from _ca.domain import BaseError
 from _ca.domain import BaseService
 from _ca.domain import BaseValue
 from _ca.domain import ErrorMsg
-from _ca.infrastructure import BaseRunner
+from _ca.infrastructure import BaseFramework
 from _ca.interface import BaseController
 from _ca.interface import BasePresenter
 from _ca.interface import BaseViewModel
@@ -43,33 +46,99 @@ class DummyEntity(BaseEntity):
     value: Any
 
 
-DUMMY_ERROR_MSG: ErrorMsg = ErrorMsg("FAILURE", "12345")
+@pytest.fixture
+def dummy_entity_value() -> Any:
+    """DummyEntity value fixture."""
+    return "entity"
+
+
+@pytest.fixture
+def dummy_entity(dummy_entity_value: Any) -> DummyEntity:
+    """DummyEntity fixture."""
+    return DummyEntity(dummy_entity_value)
+
+
+@pytest.fixture
+def dummy_entities(dummy_entity: DummyEntity) -> list[DummyEntity]:
+    """DummyEntities fixture."""
+    return [dummy_entity] + [DummyEntity(value=f"entity{i}") for i in range(3)]
 
 
 class DummyError(BaseError):
-    """Dummy error."""
+    """Dummy Error."""
+
+
+@pytest.fixture
+def dummy_error(dummy_error_msg: ErrorMsg) -> DummyError:
+    """DummyError fixture."""
+    return DummyError(dummy_error_msg)
+
+
+DUMMY_ERROR_MSG: ErrorMsg = ErrorMsg("Dummy error.")
+
+
+@pytest.fixture
+def dummy_error_msg() -> ErrorMsg:
+    """DummyRepository fixture."""
+    return DUMMY_ERROR_MSG
 
 
 @dataclass(frozen=True, slots=True)
 class DummyService(BaseService):
-    """Dummy service."""
+    """Dummy Service."""
 
-    @staticmethod
-    def convert_entity_to_value(entity: DummyEntity) -> DummyValue:
+    should_raise: bool = False
+
+    def convert_entity_to_value(self, entity: DummyEntity) -> DummyValue:
         """Convert entity to value."""
+        if self.should_raise:
+            raise DummyError(DUMMY_ERROR_MSG)
         return DummyValue(entity.value)
 
-    @staticmethod
-    def convert_value_to_entity(value: DummyValue) -> DummyEntity:
+    def convert_value_to_entity(self, value: DummyValue) -> DummyEntity:
         """Convert value to entity."""
+        if self.should_raise:
+            raise DummyError(DUMMY_ERROR_MSG)
         return DummyEntity(value.value)
+
+
+@pytest.fixture
+def dummy_service_should_raise() -> bool:
+    """DummyService should_raise fixture."""
+    return False
+
+
+@pytest.fixture
+def dummy_service(dummy_service_should_raise: bool) -> BaseService:
+    """Service fixture."""
+    return DummyService(
+        should_raise=dummy_service_should_raise,
+    )
 
 
 @dataclass(frozen=True, slots=True)
 class DummyValue(BaseValue):
-    """Dummy value."""
+    """Dummy Value."""
 
     value: Any
+
+
+@pytest.fixture
+def dummy_value_value() -> Any:
+    """DummyValue value fixture."""
+    return "value"
+
+
+@pytest.fixture
+def dummy_value(dummy_value_value: Any) -> DummyValue:
+    """DummyValue fixture."""
+    return DummyValue(dummy_value_value)
+
+
+@pytest.fixture
+def dummy_values(dummy_value: DummyValue) -> list[DummyValue]:
+    """DummyValues fixture."""
+    return [dummy_value] + [DummyValue(value=f"value{i}") for i in range(3)]
 
 
 # ---------- Application Layer ---------- #
@@ -82,6 +151,12 @@ class DummyApplication(BaseApplication):
     name: str = "Dummy Application"
     description: str = "Dummy Application."
     version: str = "0.0.0"
+
+
+@pytest.fixture
+def dummy_application() -> DummyApplication:
+    """DummyApplication values fixture."""
+    return DummyApplication()
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +175,18 @@ class DummyRequest(BaseRequest):
         return {"data": str(self.value)}
 
 
+@pytest.fixture
+def dummy_request_value() -> Any:
+    """DummyRequest value fixture."""
+    return "request"
+
+
+@pytest.fixture
+def dummy_request(dummy_request_value: Any) -> DummyRequest:
+    """DummyRequest fixture."""
+    return DummyRequest(dummy_request_value)
+
+
 @dataclass(frozen=True, slots=True)
 class DummyResponse(BaseResponse):
     """Dummy response."""
@@ -110,6 +197,18 @@ class DummyResponse(BaseResponse):
     def from_entity(cls, entity: DummyEntity) -> Self:
         """Create a Response from an Entity."""
         return cls(value=str(entity.value))
+
+
+@pytest.fixture
+def dummy_response_value() -> Any:
+    """DummyResponse value fixture."""
+    return "response"
+
+
+@pytest.fixture
+def dummy_response(dummy_response_value: Any) -> DummyResponse:
+    """DummyResponse fixture."""
+    return DummyResponse(dummy_response_value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,16 +222,33 @@ class DummyOutcome(BaseOutcome):
         return str(self.value)
 
 
+@pytest.fixture
+def dummy_outcome_value() -> Any:
+    """DummyOutcome value fixture."""
+    return "outcome"
+
+
+@pytest.fixture
+def dummy_outcome(dummy_outcome_value: Any) -> DummyOutcome:
+    """DummyOutcome fixture."""
+    return DummyOutcome(dummy_outcome_value)
+
+
 @dataclass(frozen=True, slots=True)
 class DummyPort(BasePort):
     """Dummy rort."""
 
-    value: Any
     notifications: list[Any] = field(default_factory=list, init=False)
 
-    def notify(self) -> None:
+    def notify(self, value: Any) -> None:
         """Notify something."""
-        self.notifications.append(self.value)
+        self.notifications.append(value)
+
+
+@pytest.fixture
+def dummy_port() -> DummyPort:
+    """DummyPort fixture."""
+    return DummyPort()
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +260,18 @@ class DummyRepository(BaseRepository):
     def get(self, index: int) -> Any:
         """Get something from a repository."""
         return self.values[index]
+
+
+@pytest.fixture
+def dummy_repository_values() -> list[Any]:
+    """DummyRepository values fixture."""
+    return [0, True, "two", 3.0]
+
+
+@pytest.fixture
+def dummy_repository(dummy_repository_values: list[Any]) -> DummyRepository:
+    """DummyRepository fixture."""
+    return DummyRepository(dummy_repository_values)
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +301,24 @@ class DummyUseCase(BaseUseCase):
         return Result.err(self.error_msg)
 
 
+@pytest.fixture
+def dummy_use_case(
+    dummy_service: DummyService,
+    dummy_port: DummyPort,
+    dummy_repository: DummyRepository,
+    dummy_response: DummyResponse | DummyOutcome,
+    dummy_error_msg: ErrorMsg,
+) -> DummyUseCase:
+    """DummyUseCase fixture."""
+    return DummyUseCase(
+        service=dummy_service,
+        port=dummy_port,
+        repository=dummy_repository,
+        response=dummy_response,
+        error_msg=dummy_error_msg,
+    )
+
+
 # ---------- Interface Layer ---------- #
 
 
@@ -200,12 +346,21 @@ class DummyController(BaseController):
             error_vm: ErrorViewModel = self.dummy_presenter.present_error(result.value)
             return Result.err(error_vm)
 
-        raise RuntimeError  # This will never happen
+        assert_never(result)  # ty:ignore[type-assertion-failure]
+
+
+@pytest.fixture
+def dummy_controller(dummy_use_case: DummyUseCase, dummy_presenter: DummyPresenter) -> DummyController:
+    """DummyController fixture."""
+    return DummyController(
+        dummy_use_case=dummy_use_case,
+        dummy_presenter=dummy_presenter,
+    )
 
 
 @dataclass(frozen=True, slots=True)
 class DummyPresenter(BasePresenter):
-    """Dummy presenter."""
+    """Dummy Presenter."""
 
     @staticmethod
     def present_value(value: Any) -> DummyViewModel:
@@ -213,19 +368,37 @@ class DummyPresenter(BasePresenter):
         return DummyViewModel(value=str(value))
 
 
+@pytest.fixture
+def dummy_presenter() -> DummyPresenter:
+    """DummyPresenter fixture."""
+    return DummyPresenter()
+
+
 @dataclass(frozen=True, slots=True)
 class DummyViewModel(BaseViewModel):
-    """Dummy view model."""
+    """Dummy ViewModel."""
 
     value: str
+
+
+@pytest.fixture
+def dummy_view_model_value() -> str:
+    """DummyViewModel fixture."""
+    return "view_model"
+
+
+@pytest.fixture
+def dummy_view_model(dummy_view_model_value: str) -> DummyViewModel:
+    """DummyViewModel fixture."""
+    return DummyViewModel(dummy_view_model_value)
 
 
 # ---------- Infrastructure Layer ---------- #
 
 
 @dataclass(frozen=True, slots=True)
-class DummyRunner(BaseRunner):
-    """Dummy runner class, implementing Clean Architecture patterns."""
+class DummyFramework(BaseFramework):
+    """Dummy Framework."""
 
     application: BaseApplication
     _is_running: list[bool] = field(default_factory=lambda: [False], init=False)
@@ -242,3 +415,11 @@ class DummyRunner(BaseRunner):
     @override
     def stop(self) -> None:
         self._is_running[0] = False
+
+
+@pytest.fixture
+def dummy_framework(dummy_application: DummyApplication) -> DummyFramework:
+    """DummyFramework fixture."""
+    return DummyFramework(
+        application=dummy_application,
+    )

@@ -185,7 +185,7 @@ def make_parametrize(
     return {"argnames": arg_names, "argvalues": values, "ids": id_list}
 
 
-# ---------- Project Domain ---------- #
+# ---------- Domain Layer ---------- #
 
 
 DUMMY_SOUND_DEVICE_PROVIDER_ERROR: ErrorMsg = ErrorMsg("Dummy SoundDeviceProvider error.")
@@ -231,7 +231,7 @@ def sound_device_provider_should_raise() -> bool:
 
 
 @pytest.fixture
-def sound_volume_view(
+def sound_device_provider(
     sound_devices: list[SoundDevice],
     sound_device_provider_should_raise: bool,
 ) -> SoundDeviceProvider:
@@ -242,7 +242,7 @@ def sound_volume_view(
     )
 
 
-# ---------- Project Application ---------- #
+# ---------- Application Layer ---------- #
 
 
 @pytest.fixture
@@ -252,14 +252,14 @@ def sound_device_responses(sound_devices: list[SoundDevice]) -> list[SoundDevice
 
 
 @pytest.fixture
-def get_sound_devices_use_case(sound_volume_view: SoundDeviceProvider) -> GetSoundDevicesUseCase:
+def get_sound_devices_use_case(sound_device_provider: SoundDeviceProvider) -> GetSoundDevicesUseCase:
     """GetSoundDevicesUseCase fixture."""
     return GetSoundDevicesUseCase(
-        sound_device_provider=sound_volume_view,
+        sound_device_provider=sound_device_provider,
     )
 
 
-# ---------- Project Interface ---------- #
+# ---------- Interface Layer ---------- #
 
 
 @dataclass(frozen=True, slots=True)
@@ -294,7 +294,7 @@ def sound_device_controller(
     )
 
 
-# ---------- Project Infrastructure ---------- #
+# ---------- Infrastructure Layer ---------- #
 
 
 @pytest.fixture
@@ -320,7 +320,7 @@ def application(
     app_name: str,
     app_description: str,
     app_version: str,
-    sound_volume_view: SoundDeviceProvider,
+    sound_device_provider: SoundDeviceProvider,
     sound_device_presenter: SoundDevicePresenter,
 ) -> HeadphoneAutoSwitcherApplication:
     """Application fixture."""
@@ -328,6 +328,6 @@ def application(
         name=app_name,
         description=app_description,
         version=app_version,
-        sound_device_provider=sound_volume_view,
+        sound_device_provider=sound_device_provider,
         sound_device_presenter=sound_device_presenter,
     )

@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from _ca.domain import BaseError
     from _ca.domain import BaseService
     from _ca.domain import BaseValue
-    from _ca.domain import ErrorMsg
 
 
 @pytest.mark.unit
@@ -74,10 +73,10 @@ class TestEntity:
             # Assert
             assert result is False
 
-    def test_hash(self) -> None:
+    def test_hash(self, dummy_entity: DummyEntity) -> None:
         """Test for Entity.__hash__()."""
         # Arrange
-        entity: DummyEntity = DummyEntity(None)
+        entity: BaseEntity = dummy_entity
         id_hash: int = hash(entity.id)
 
         # Act
@@ -91,42 +90,37 @@ class TestEntity:
 class TestBaseError:
     """Tests for BaseError."""
 
-    def test_message(self) -> None:
-        """Tests for BaseError.message."""
+    def test_message(self, dummy_error: DummyError) -> None:
+        """Test for BaseError.message."""
         # Arrange
-        error_msg: ErrorMsg = DUMMY_ERROR_MSG
+        error: BaseError = dummy_error
 
-        # Act
-        result: BaseError = DummyError(error_msg)
-
-        # Assert
-        assert result.message == error_msg
+        # Act/Assert
+        assert error.message == DUMMY_ERROR_MSG
 
 
 @pytest.mark.unit
 class TestBaseService:
     """Tests for BaseService."""
 
-    def test_service(self) -> None:
+    def test_service(self, dummy_service: DummyService) -> None:
         """Test for BaseService."""
-        _: BaseService = DummyService()
+        _: BaseService = dummy_service
 
 
 @pytest.mark.unit
 class TestBaseValue:
     """Tests for BaseValue."""
 
-    @pytest.fixture
-    def value_obj(self) -> BaseValue:
-        """BaseValue fixture."""
-        return DummyValue("VALUE")
-
-    def test_unmodifiable(self, value_obj: BaseValue) -> None:
+    def test_unmodifiable(self, dummy_value: DummyValue) -> None:
         """Test to verify that the value is not editable."""
+        # Arrange
+        value: BaseValue = dummy_value
+
         # Act/Assert
         with pytest.raises(FrozenInstanceError):
             # noinspection dunder-slots
-            value_obj.value = 1  # ty:ignore[invalid-assignment]
+            value.value = 1  # ty:ignore[invalid-assignment]
 
 
 if __name__ == "__main__":

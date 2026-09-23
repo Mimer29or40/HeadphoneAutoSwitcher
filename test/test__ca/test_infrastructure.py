@@ -11,11 +11,10 @@ from _ca.application import BaseApplication
 from _ca.infrastructure import DefaultLogConfigProvider
 from _ca.infrastructure import LogConfigProvider
 from _ca.infrastructure import configure_logging
-from test__ca.conftest import DummyApplication
-from test__ca.conftest import DummyRunner
 
 if TYPE_CHECKING:
-    from _ca.infrastructure import BaseRunner
+    from _ca.infrastructure import BaseFramework
+    from test__ca.conftest import DummyFramework
 
 
 @pytest.mark.unit
@@ -55,25 +54,18 @@ class TestLogConfigProvider:
 
 
 @pytest.mark.unit
-class TestBaseRunner:
-    """Tests for BaseRunner."""
+class TestBaseFramework:
+    """Tests for BaseFramework."""
 
-    @pytest.fixture
-    def runner_obj(self) -> BaseRunner:
-        """BaseRunner fixture."""
-        application: DummyApplication = DummyApplication()
+    def test_application(self, dummy_framework: DummyFramework) -> None:
+        """Tests for BaseFramework.application."""
+        framework: BaseFramework = dummy_framework
+        assert isinstance(framework.application, BaseApplication)
 
-        return DummyRunner(
-            application=application,
-        )
-
-    def test_application(self, runner_obj: BaseRunner) -> None:
-        """Tests for BaseRunner.application."""
-        assert isinstance(runner_obj.application, BaseApplication)
-
-    def test_is_running(self, runner_obj: BaseRunner) -> None:
-        """Tests for BaseRunner.is_running."""
-        assert isinstance(runner_obj.is_running, bool)
+    def test_is_running(self, dummy_framework: DummyFramework) -> None:
+        """Tests for BaseFramework.is_running."""
+        framework: BaseFramework = dummy_framework
+        assert isinstance(framework.is_running, bool)
 
 
 if __name__ == "__main__":

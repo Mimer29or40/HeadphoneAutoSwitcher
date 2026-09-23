@@ -21,35 +21,35 @@ class TestSoundDeviceProvider:
     class TestFind:
         """Tests for SoundDeviceProvider.find()."""
 
-        def test_found(self, sound_devices: list[SoundDevice], sound_volume_view: SoundDeviceProvider) -> None:
+        def test_found(self, sound_devices: list[SoundDevice], sound_device_provider: SoundDeviceProvider) -> None:
             """Test for SoundDeviceProvider.find() when a SoundDevice is found."""
             # Arrange
             expected: SoundDevice = sound_devices[0]
             device_id: UUID = expected.id
 
             # Act
-            result: SoundDevice | None = sound_volume_view.find(device_id)
+            result: SoundDevice | None = sound_device_provider.find(device_id)
 
             # Assert
             assert result == expected
 
-        def test_not_found(self, sound_volume_view: SoundDeviceProvider) -> None:
+        def test_not_found(self, sound_device_provider: SoundDeviceProvider) -> None:
             """Test for SoundDeviceProvider.find() when a SoundDevice is not found."""
             # Arrange
             expected: SoundDevice = SoundDevice(type="type", name="name", default="default")
             device_id: UUID = expected.id
 
             # Act
-            result: SoundDevice | None = sound_volume_view.find(device_id)
+            result: SoundDevice | None = sound_device_provider.find(device_id)
 
             # Assert
             assert result is None
 
     @pytest.mark.unit
-    def test_find_all(self, sound_devices: list[SoundDevice], sound_volume_view: SoundDeviceProvider) -> None:
+    def test_find_all(self, sound_devices: list[SoundDevice], sound_device_provider: SoundDeviceProvider) -> None:
         """Test for SoundDeviceProvider.find_all()."""
         # Act
-        result: list[SoundDevice] = sound_volume_view.find_all()
+        result: list[SoundDevice] = sound_device_provider.find_all()
 
         # Assert
         assert result == sound_devices

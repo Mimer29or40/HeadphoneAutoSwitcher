@@ -29,7 +29,7 @@ class TestSoundVolumeView:
         return project_root_path / "SoundVolumeView.exe"
 
     @pytest.fixture
-    def sound_volume_view(self, sound_volume_view_path: Path) -> SoundVolumeView:
+    def sound_device_provider(self, sound_volume_view_path: Path) -> SoundVolumeView:
         """SoundVolumeView fixture."""
         return SoundVolumeView(sound_volume_view_path=sound_volume_view_path)
 
@@ -38,7 +38,7 @@ class TestSoundVolumeView:
         self,
         unfreeze_monkeypatch: pytest.MonkeyPatch,
         sound_devices: list[SoundDevice],
-        sound_volume_view: SoundVolumeView,
+        sound_device_provider: SoundVolumeView,
     ) -> None:
         """Substitute SoundVolumeView._query() to provide a test devices."""
         lines: list[str] = [
@@ -64,23 +64,27 @@ class TestSoundVolumeView:
         def _query() -> list[str]:
             return lines
 
-        unfreeze_monkeypatch.setattr(sound_volume_view, "_query", _query)
+        unfreeze_monkeypatch.setattr(sound_device_provider, "_query", _query)
 
     @pytest.mark.unit
     class TestErrors:
         """Tests for SoundVolumeView when it raises an SoundDeviceProviderError."""
 
         @pytest.mark.parametrize(**make_parametrize("sound_volume_view_path", Path("PATH/TO/EXECUTABLE.EXE")))
-        def test_executable_not_found(self, sound_volume_view: SoundVolumeView) -> None:
+        def test_executable_not_found(self, sound_device_provider: SoundVolumeView) -> None:
             """Test to verify raising when the executable is not found."""
             # Assert
             with pytest.raises(SoundDeviceProviderError) as exc_info:
-                sound_volume_view.find_all()
+                sound_device_provider.find_all()
 
             assert isinstance(exc_info.value, SoundDeviceProviderError)
             assert exc_info.value.message == SOUND_VOLUME_VIEW_NOT_FOUND_ERROR
 
-        def test_non_zero_exit_code(self, monkeypatch: pytest.MonkeyPatch, sound_volume_view: SoundVolumeView) -> None:
+        def test_non_zero_exit_code(
+            self,
+            monkeypatch: pytest.MonkeyPatch,
+            sound_device_provider: SoundVolumeView,
+        ) -> None:
             """Test to verify raising when the executable is not found."""
             # Arrange
 
@@ -91,7 +95,7 @@ class TestSoundVolumeView:
 
             # Assert
             with pytest.raises(SoundDeviceProviderError) as exc_info:
-                sound_volume_view.find_all()
+                sound_device_provider.find_all()
 
             assert isinstance(exc_info.value, SoundDeviceProviderError)
             assert exc_info.value.message == SOUND_VOLUME_VIEW_NON_ZERO_RETURN
@@ -101,36 +105,36 @@ class TestSoundVolumeView:
     class TestFind:
         """Tests for SoundVolumeView.find()."""
 
-        def test_found(self, sound_devices: list[SoundDevice], sound_volume_view: SoundVolumeView) -> None:
+        def test_found(self, sound_devices: list[SoundDevice], sound_device_provider: SoundVolumeView) -> None:
             """Test for SoundVolumeView.find() when a SoundDevice is found."""
             # Arrange
             expected: SoundDevice = sound_devices[0]
             device_id: UUID = expected.id
 
             # Act
-            result: SoundDevice | None = sound_volume_view.find(device_id)
+            result: SoundDevice | None = sound_device_provider.find(device_id)
 
             # Assert
             assert result == expected
 
-        def test_not_found(self, sound_volume_view: SoundVolumeView) -> None:
+        def test_not_found(self, sound_device_provider: SoundVolumeView) -> None:
             """Test for SoundVolumeView.find() when a SoundDevice is not found."""
             # Arrange
             expected: SoundDevice = SoundDevice(type="type", name="name", default="default")
             device_id: UUID = expected.id
 
             # Act
-            result: SoundDevice | None = sound_volume_view.find(device_id)
+            result: SoundDevice | None = sound_device_provider.find(device_id)
 
             # Assert
             assert result is None
 
     @pytest.mark.unit
     @pytest.mark.usefixtures("substitute_query")
-    def test_find_all(self, sound_devices: list[SoundDevice], sound_volume_view: SoundVolumeView) -> None:
+    def test_find_all(self, sound_devices: list[SoundDevice], sound_device_provider: SoundVolumeView) -> None:
         """Test for SoundVolumeView.find_all()."""
         # Act
-        result: list[SoundDevice] = sound_volume_view.find_all()
+        result: list[SoundDevice] = sound_device_provider.find_all()
 
         # Assert
         assert result == sound_devices
