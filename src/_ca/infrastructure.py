@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging.config
+import sys
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
+from typing import Never
 from typing import override
 
 if TYPE_CHECKING:
@@ -44,20 +46,22 @@ def configure_logging(log_config: LogConfigProvider) -> None:
     logging.config.dictConfig(config)
 
 
+type FrameworkResult = str | int | None
+FRAMEWORK_SUCCESS: FrameworkResult = 0
+FRAMEWORK_FAILURE: FrameworkResult = -1
+
+
 class BaseFramework(ABC):
     """Base framework class, implementing Clean Architecture patterns."""
 
     application: BaseApplication
 
-    @property
     @abstractmethod
-    def is_running(self) -> bool:
-        """True, if the application is running, False otherwise."""
+    def run(self, *args: Any) -> FrameworkResult:
+        """Run the framework."""
 
-    @abstractmethod
-    def start(self) -> None:
-        """Start the application."""
-
-    @abstractmethod
-    def stop(self) -> None:
-        """Stop the application."""
+    def main(self) -> Never:
+        """Main entry point for the console application."""
+        args: list[str] = sys.argv[1:]
+        result: FrameworkResult = self.run(*args)
+        sys.exit(result)

@@ -113,7 +113,7 @@ class TestConsoleUsbDevicePresenter:
             assert view_model.serial_number == response.serial_number
             assert view_model.vendor == f"{response.vendor_name} (0x{response.vendor_id:04X})"
             assert view_model.product == f"{response.product_name} (0x{response.product_id:04X})"
-            assert view_model.version_number == response.version_number
+            assert view_model.version_number == str(response.version_number)
 
 
 if __name__ == "__main__":

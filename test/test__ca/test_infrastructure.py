@@ -59,13 +59,11 @@ class TestBaseFramework:
 
     def test_application(self, dummy_framework: DummyFramework) -> None:
         """Tests for BaseFramework.application."""
+        # Arrange
         framework: BaseFramework = dummy_framework
-        assert isinstance(framework.application, BaseApplication)
 
-    def test_is_running(self, dummy_framework: DummyFramework) -> None:
-        """Tests for BaseFramework.is_running."""
-        framework: BaseFramework = dummy_framework
-        assert isinstance(framework.is_running, bool)
+        # Assert
+        assert isinstance(framework.application, BaseApplication)
 
 
 if __name__ == "__main__":

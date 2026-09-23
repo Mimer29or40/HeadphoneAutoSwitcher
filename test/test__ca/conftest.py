@@ -26,6 +26,7 @@ from _ca.domain import BaseService
 from _ca.domain import BaseValue
 from _ca.domain import ErrorMsg
 from _ca.infrastructure import BaseFramework
+from _ca.infrastructure import FrameworkResult
 from _ca.interface import BaseController
 from _ca.interface import BasePresenter
 from _ca.interface import BaseViewModel
@@ -440,20 +441,10 @@ class DummyFramework(BaseFramework):
     """Dummy Framework."""
 
     application: BaseApplication
-    _is_running: list[bool] = field(default_factory=lambda: [False], init=False)
-
-    @property
-    @override
-    def is_running(self) -> bool:
-        return self._is_running[0]
 
     @override
-    def start(self) -> None:
-        self._is_running[0] = True
-
-    @override
-    def stop(self) -> None:
-        self._is_running[0] = False
+    def run(self, *args: Any) -> FrameworkResult:
+        pass
 
 
 @pytest.fixture
