@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
+from typing import Never
 from typing import assert_never
 from typing import override
 
@@ -232,7 +233,7 @@ def run(*args: Any) -> FrameworkResult:
     return framework.run(*args)
 
 
-def main() -> FrameworkResult:
+def main() -> Never:
     """Main entry point for the framework."""
     framework: BaseFramework = create_framework()
     framework.main()
