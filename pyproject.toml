@@ -10,8 +10,6 @@ dependencies = [
     "click==8.5.0",
 ]
 
-# TODO(Ryan): Make an internal library for base types
-
 
 [project.optional-dependencies]
 dev = [
