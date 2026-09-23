@@ -13,7 +13,9 @@ if TYPE_CHECKING:
     from logging import Logger
 
     from application.dto import SoundDeviceResponse
+    from application.dto import UsbDeviceResponse
     from interface.view_model import SoundDeviceViewModel
+    from interface.view_model import UsbDeviceViewModel
 
 
 logger: Logger = logging.getLogger("interface.presenter")
@@ -29,3 +31,15 @@ class SoundDevicePresenter(BasePresenter, ABC):
     def present_sound_devices(self, responses: list[SoundDeviceResponse]) -> list[SoundDeviceViewModel]:
         """Convert response to view model."""
         return [self.present_sound_device(response) for response in responses]
+
+
+class UsbDevicePresenter(BasePresenter, ABC):
+    """Presenter for UsbDevices."""
+
+    @abstractmethod
+    def present_usb_device(self, response: UsbDeviceResponse) -> UsbDeviceViewModel:
+        """Convert response to view model."""
+
+    def present_usb_devices(self, responses: list[UsbDeviceResponse]) -> list[UsbDeviceViewModel]:
+        """Convert response to view model."""
+        return [self.present_usb_device(response) for response in responses]

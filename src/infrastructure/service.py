@@ -11,14 +11,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import ClassVar
 from typing import override
 from uuid import UUID
 
+from pywinusb.hid import HidDevice
+from pywinusb.hid import HidDeviceFilter
+
 from _ca.domain import ErrorMsg
 from domain.entity import SoundDevice
+from domain.entity import UsbDevice
 from domain.exception import SoundDeviceProviderError
+from domain.exception import UsbDeviceProviderError
 from domain.service import SoundDeviceProvider
+from domain.service import UsbDeviceProvider
 from domain.value import SoundDeviceType
 
 if TYPE_CHECKING:
@@ -28,7 +35,22 @@ if TYPE_CHECKING:
 logger: Logger = logging.getLogger("infrastructure.service")
 
 
-type Row = list[str]
+UUID_PATTERN: re.Pattern[str] = re.compile(
+    r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+    flags=re.IGNORECASE,
+)
+
+
+def _extract_uuid(value: str) -> UUID | None:  # pragma: no cover
+    uuid_match: re.Match[str] | None = UUID_PATTERN.search(value)
+    if uuid_match is None:
+        logger.debug("Bad registry key: %s", value)
+        return None
+    uuid: UUID = UUID(uuid_match.group(1))
+    return uuid
+
+
+type SoundDeviceRow = list[str]
 
 SOUND_VOLUME_VIEW_NOT_FOUND_ERROR: ErrorMsg = ErrorMsg("SoundVolumeView: executable not found")
 SOUND_VOLUME_VIEW_NON_ZERO_RETURN: ErrorMsg = ErrorMsg("SoundVolumeView: non-zero exit code")
@@ -37,6 +59,7 @@ DEFAULT_SOUND_VOLUME_VIEW_PATH: Path = Path("SoundVolumeView.exe")
 DEFAULT_SOUND_VOLUME_VIEW_OUTPUT_FILE: Path = Path(tempfile.gettempdir()) / "SoundVolumeView-Output.txt"
 
 
+# noinspection DuplicatedCode
 @dataclass(frozen=True, slots=True)
 class SoundVolumeView(SoundDeviceProvider):
     """SoundDeviceProvider with SoundVolumeView."""
@@ -46,11 +69,11 @@ class SoundVolumeView(SoundDeviceProvider):
 
     @override
     def find(self, device_id: UUID) -> SoundDevice | None:
-        query: list[Row] = self._query_device_rows()
+        query: list[SoundDeviceRow] = self._query_device_rows()
 
-        row: Row
+        row: SoundDeviceRow
         for row in query:
-            extracted_id: UUID | None = self._extract_uuid(row)
+            extracted_id: UUID | None = _extract_uuid(row[self.COLUMN_REGISTRY_KEY])
             if extracted_id == device_id:
                 device: SoundDevice = self._create_device(device_id, row)
                 return device
@@ -58,12 +81,12 @@ class SoundVolumeView(SoundDeviceProvider):
 
     @override
     def find_all(self) -> list[SoundDevice]:
-        query: list[Row] = self._query_device_rows()
+        query: list[SoundDeviceRow] = self._query_device_rows()
 
         sound_devices: list[SoundDevice] = []
-        row: Row
+        row: SoundDeviceRow
         for row in query:
-            device_id: UUID | None = self._extract_uuid(row)
+            device_id: UUID | None = _extract_uuid(row[self.COLUMN_REGISTRY_KEY])
             if device_id is None:  # pragma: no cover
                 continue
 
@@ -94,13 +117,13 @@ class SoundVolumeView(SoundDeviceProvider):
         finally:
             self.output_file.unlink(missing_ok=True)
 
-    def _query_device_rows(self) -> list[Row]:  # pragma: no cover
+    def _query_device_rows(self) -> list[SoundDeviceRow]:  # pragma: no cover
         query: list[str] = self._query()
 
-        device_rows: list[Row] = []
+        device_rows: list[SoundDeviceRow] = []
         line: str
         for line in query[1:]:  # Drop Header Row
-            row: Row = line.split("\t")
+            row: SoundDeviceRow = line.split("\t")
 
             type: str = row[self.COLUMN_TYPE]
             if type != "Device":
@@ -110,16 +133,7 @@ class SoundVolumeView(SoundDeviceProvider):
 
         return device_rows
 
-    def _extract_uuid(self, row: Row) -> UUID | None:  # pragma: no cover
-        registry_key: str = row[self.COLUMN_REGISTRY_KEY]
-        uuid_match: re.Match[str] | None = self.UUID_PATTERN.search(registry_key)
-        if uuid_match is None:
-            logger.debug("Bad registry key: %s", registry_key)
-            return None
-        uuid: UUID = UUID(uuid_match.group(1))
-        return uuid
-
-    def _create_device(self, device_id: UUID, row: Row) -> SoundDevice:  # pragma: no cover
+    def _create_device(self, device_id: UUID, row: SoundDeviceRow) -> SoundDevice:  # pragma: no cover
         direction: SoundDeviceType = {
             "Capture": SoundDeviceType.INPUT,
             "Render": SoundDeviceType.OUTPUT,
@@ -152,7 +166,7 @@ class SoundVolumeView(SoundDeviceProvider):
     COLUMN_VOLUME_STEP: ClassVar[int] = 13
     COLUMN_CHANNELS_COUNT: ClassVar[int] = 14
     COLUMN_CHANNELS_DB: ClassVar[int] = 15
-    COLUMN_CHANNELS_PERCENT = 16
+    COLUMN_CHANNELS_PERCENT: ClassVar[int] = 16
     COLUMN_ITEM_ID: ClassVar[int] = 17
     COLUMN_COMMAND_LINE_FRIENDLY_ID: ClassVar[int] = 18
     COLUMN_PROCESS_PATH: ClassVar[int] = 19
@@ -163,7 +177,87 @@ class SoundVolumeView(SoundDeviceProvider):
     COLUMN_DEFAULT_FORMAT: ClassVar[int] = 24
     COLUMN_LAST: ClassVar[int] = COLUMN_DEFAULT_FORMAT
 
-    UUID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
-        r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
-        flags=re.IGNORECASE,
-    )
+
+type UsbDeviceRow = dict[str, Any]
+
+PY_WIN_USB_ERROR: ErrorMsg = ErrorMsg("pywinusb: error")
+
+
+# noinspection DuplicatedCode
+@dataclass(frozen=True, slots=True)
+class PyWinUsb(UsbDeviceProvider):
+    """UsbDeviceProvider with pywinusb."""
+
+    @override
+    def find(self, device_id: UUID) -> UsbDevice | None:
+        query: list[UsbDeviceRow] = self._query_device_rows()
+
+        row: UsbDeviceRow
+        for row in query:
+            extracted_id: UUID | None = _extract_uuid(row[self.COLUMN_DEVICE_PATH])
+            if extracted_id == device_id:
+                device: UsbDevice = self._create_device(device_id, row)
+                return device
+        return None
+
+    @override
+    def find_all(self) -> list[UsbDevice]:
+        query: list[UsbDeviceRow] = self._query_device_rows()
+
+        sound_devices: list[UsbDevice] = []
+        row: UsbDeviceRow
+        for row in query:
+            device_id: UUID | None = _extract_uuid(row[self.COLUMN_DEVICE_PATH])
+            if device_id is None:  # pragma: no cover
+                continue
+
+            device: UsbDevice = self._create_device(device_id, row)
+            sound_devices.append(device)
+
+        return sound_devices
+
+    @staticmethod
+    def _query_device_rows() -> list[UsbDeviceRow]:  # pragma: no cover
+        device_rows: list[UsbDeviceRow] = []
+        filter: HidDeviceFilter = HidDeviceFilter()
+        hid_device: HidDevice
+        for hid_device in filter.get_devices():
+            row: UsbDeviceRow = vars(hid_device)
+
+            device_rows.append(row)
+        return device_rows
+
+    def _create_device(self, device_id: UUID, row: UsbDeviceRow) -> UsbDevice:  # pragma: no cover
+        serial_number: str = row[self.COLUMN_SERIAL_NUMBER]
+        vendor_name: str = row[self.COLUMN_VENDOR_NAME]
+        vendor_id: int = row[self.COLUMN_VENDOR_ID]
+        product_name: str = row[self.COLUMN_PRODUCT_NAME]
+        product_id: int = row[self.COLUMN_PRODUCT_ID]
+        version_number: int = row[self.COLUMN_VERSION_NUMBER]
+
+        device: UsbDevice = UsbDevice(
+            serial_number=serial_number,
+            vendor_name=vendor_name,
+            vendor_id=vendor_id,
+            product_name=product_name,
+            product_id=product_id,
+            version_number=version_number,
+        )
+        device.id = device_id
+        logger.debug("Loaded UsbDevice: %s", device)
+        return device
+
+    COLUMN_DEVICE_PATH: ClassVar[str] = "device_path"
+    COLUMN_HID_CAPS: ClassVar[str] = "hid_caps"
+    COLUMN_HID_HANDLE: ClassVar[str] = "hid_handle"
+    COLUMN_INSTANCE_ID: ClassVar[str] = "instance_id"
+    COLUMN_PARENT_INSTANCE_ID: ClassVar[str] = "parent_instance_id"
+    COLUMN_PRODUCT_ID: ClassVar[str] = "product_id"
+    COLUMN_PRODUCT_NAME: ClassVar[str] = "product_name"
+    COLUMN_PTR_PREPARSED_DATA: ClassVar[str] = "ptr_preparsed_data"
+    COLUMN_REPORT_SET: ClassVar[str] = "report_set"
+    COLUMN_SERIAL_NUMBER: ClassVar[str] = "serial_number"
+    COLUMN_USAGES_STORAGE: ClassVar[str] = "usages_storage"
+    COLUMN_VENDOR_ID: ClassVar[str] = "vendor_id"
+    COLUMN_VENDOR_NAME: ClassVar[str] = "vendor_name"
+    COLUMN_VERSION_NUMBER: ClassVar[str] = "version_number"

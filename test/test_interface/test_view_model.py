@@ -17,5 +17,12 @@ class TestSoundDeviceViewModel:
     # No tests
 
 
+@pytest.mark.unit
+class TestUsbDeviceViewModel:
+    """Tests for UsbDeviceViewModel."""
+
+    # No tests
+
+
 if __name__ == "__main__":
     pytest.main()

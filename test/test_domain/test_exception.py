@@ -8,6 +8,7 @@ import pytest
 
 from _ca.domain import ErrorMsg
 from domain.exception import SoundDeviceProviderError
+from domain.exception import UsbDeviceProviderError
 
 if TYPE_CHECKING:
     pass
@@ -20,6 +21,15 @@ class TestSoundDeviceProviderError:
     def test_dummy(self) -> None:
         """Dummy test."""
         _: SoundDeviceProviderError = SoundDeviceProviderError(ErrorMsg("DUMMY"))
+
+
+@pytest.mark.unit
+class TestUsbDeviceProviderError:
+    """Tests for UsbDeviceProviderError."""
+
+    def test_dummy(self) -> None:
+        """Dummy test."""
+        _: UsbDeviceProviderError = UsbDeviceProviderError(ErrorMsg("DUMMY"))
 
 
 if __name__ == "__main__":

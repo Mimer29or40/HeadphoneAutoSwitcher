@@ -24,3 +24,15 @@ class SoundDevice(BaseEntity):  # TODO(Ryan): More fields
     type: SoundDeviceType
     name: str
     selected: bool
+
+
+@dataclass(eq=False)
+class UsbDevice(BaseEntity):  # TODO(Ryan): More fields
+    """Represents a USB device on the system."""
+
+    serial_number: str
+    vendor_name: str
+    vendor_id: int
+    product_name: str
+    product_id: int
+    version_number: int

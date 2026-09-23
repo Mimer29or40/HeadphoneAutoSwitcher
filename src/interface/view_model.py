@@ -23,3 +23,14 @@ class SoundDeviceViewModel(BaseViewModel):
     type: str
     name: str
     selected: str
+
+
+@dataclass(frozen=True, slots=True)
+class UsbDeviceViewModel(BaseViewModel):
+    """Represents a UsbDevice."""
+
+    id: str
+    serial_number: str
+    vendor: str
+    product: str
+    version_number: str

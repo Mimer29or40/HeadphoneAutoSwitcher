@@ -10,14 +10,20 @@ from typing import override
 
 from _ca.infrastructure import LogConfigProvider
 from interface.presenter import SoundDevicePresenter
+from interface.presenter import UsbDevicePresenter
 from interface.view_model import SoundDeviceViewModel
+from interface.view_model import UsbDeviceViewModel
 
 if TYPE_CHECKING:
     from logging import Logger
 
     from application.dto import SoundDeviceResponse
+    from application.dto import UsbDeviceResponse
 
 logger: Logger = logging.getLogger("infrastructure.console")
+
+
+DEFAULT_CONSOLE_LOG_FORMAT: dict[str, Any] = {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,7 +38,7 @@ class ConsoleLogConfigProvider(LogConfigProvider):
         """Get the logging configuration."""
         format: dict[str, Any] | None = self.format
         if format is None:
-            format = {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}
+            format = DEFAULT_CONSOLE_LOG_FORMAT
 
         return {
             "version": 1,
@@ -61,4 +67,18 @@ class ConsoleSoundDevicePresenter(SoundDevicePresenter):
             type=response.type,
             name=response.name,
             selected="Selected" if response.selected else "",
+        )
+
+
+class ConsoleUsbDevicePresenter(UsbDevicePresenter):
+    """UsbDevicePresenter for the console."""
+
+    @override
+    def present_usb_device(self, response: UsbDeviceResponse) -> UsbDeviceViewModel:
+        return UsbDeviceViewModel(
+            id=response.id,
+            serial_number=response.serial_number,
+            vendor=f"{response.vendor_name} (0x{response.vendor_id:04X})",
+            product=f"{response.product_name} (0x{response.product_id:04X})",
+            version_number=str(response.version_number),
         )

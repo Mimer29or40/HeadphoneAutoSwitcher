@@ -16,6 +16,8 @@ from _ca.utils import Result
 from infrastructure.app import HeadphoneAutoSwitcherApplication
 from infrastructure.console import ConsoleLogConfigProvider
 from infrastructure.console import ConsoleSoundDevicePresenter
+from infrastructure.console import ConsoleUsbDevicePresenter
+from infrastructure.service import PyWinUsb
 from infrastructure.service import SoundVolumeView
 
 if TYPE_CHECKING:
@@ -25,11 +27,14 @@ if TYPE_CHECKING:
     from _ca.infrastructure import LogConfigProvider
     from _ca.interface import ErrorViewModel
     from domain.service import SoundDeviceProvider
+    from domain.service import UsbDeviceProvider
     from interface.presenter import SoundDevicePresenter
+    from interface.presenter import UsbDevicePresenter
     from interface.view_model import SoundDeviceViewModel
+    from interface.view_model import UsbDeviceViewModel
 
 
-logger: Logger = logging.getLogger("infrastructure.console")
+logger: Logger = logging.getLogger("infrastructure.cli")
 
 
 type ConsoleResult = str | int | None
@@ -51,7 +56,7 @@ def _make_table[T: Sequence](rows: list[T]) -> list[str]:
     return [format.format(*r) for r in rows]
 
 
-def create_cli(app: HeadphoneAutoSwitcherApplication) -> click.Group:  # TODO(Ryan): Make this a class
+def create_cli(app: HeadphoneAutoSwitcherApplication) -> click.Group:  # noqa: C901  # TODO(Ryan): Make this a class
     """Create the CLI."""
 
     @click.group(help=app.description, invoke_without_command=True)
@@ -99,6 +104,30 @@ def create_cli(app: HeadphoneAutoSwitcherApplication) -> click.Group:  # TODO(Ry
 
         assert_never(result)  # ty:ignore[type-assertion-failure]
 
+    @cli.command()
+    def usb() -> ConsoleResult:
+        """Command 'usb'."""
+        result: Result[list[UsbDeviceViewModel], ErrorViewModel] = app.usb_device_controller.handle_get_usb_devices()
+
+        if Result.is_ok(result):
+            devices: list[UsbDeviceViewModel] = result.value
+
+            rows: list[list[str]] = [["Vendor", "Product", "Version", "Serial Number"]]
+            rows.extend(sorted([[d.vendor, d.product, d.version_number, d.serial_number] for d in devices]))
+
+            line: str
+            for line in _make_table(rows):
+                click.echo(line)
+
+            return 0
+
+        if Result.is_err(result):
+            error_vm: ErrorViewModel = result.value
+            logger.error(error_vm)
+            return 1
+
+        assert_never(result)  # ty:ignore[type-assertion-failure]
+
     return cli
 
 
@@ -110,9 +139,14 @@ def run(*args: Any) -> ConsoleResult:
         sound_device_provider: SoundDeviceProvider = SoundVolumeView()
         sound_device_presenter: SoundDevicePresenter = ConsoleSoundDevicePresenter()
 
+        usb_device_provider: UsbDeviceProvider = PyWinUsb()
+        usb_device_presenter: UsbDevicePresenter = ConsoleUsbDevicePresenter()
+
         app: HeadphoneAutoSwitcherApplication = HeadphoneAutoSwitcherApplication(
             sound_device_provider=sound_device_provider,
             sound_device_presenter=sound_device_presenter,
+            usb_device_provider=usb_device_provider,
+            usb_device_presenter=usb_device_presenter,
         )
 
         # Create and run appropriate CLI implementation

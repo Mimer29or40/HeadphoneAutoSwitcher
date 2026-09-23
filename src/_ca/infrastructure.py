@@ -45,7 +45,7 @@ def configure_logging(log_config: LogConfigProvider) -> None:
 
 
 class BaseFramework(ABC):
-    """Base runner class, implementing Clean Architecture patterns."""
+    """Base framework class, implementing Clean Architecture patterns."""
 
     application: BaseApplication
 
@@ -61,7 +61,3 @@ class BaseFramework(ABC):
     @abstractmethod
     def stop(self) -> None:
         """Stop the application."""
-
-
-class Framework(ABC):
-    """Base framework class, implementing Clean Architecture patterns."""

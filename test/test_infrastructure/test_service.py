@@ -11,15 +11,20 @@ import pytest
 from conftest import make_parametrize
 
 from domain.exception import SoundDeviceProviderError
+from domain.exception import UsbDeviceProviderError
 from domain.value import SoundDeviceType
 from infrastructure.service import SOUND_VOLUME_VIEW_NON_ZERO_RETURN
 from infrastructure.service import SOUND_VOLUME_VIEW_NOT_FOUND_ERROR
+from infrastructure.service import PyWinUsb
+from infrastructure.service import SoundDeviceRow
 from infrastructure.service import SoundVolumeView
+from infrastructure.service import UsbDeviceRow
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     from domain.entity import SoundDevice
+    from domain.entity import UsbDevice
 
 
 class TestSoundVolumeView:
@@ -43,17 +48,10 @@ class TestSoundVolumeView:
         sound_device_provider: SoundVolumeView,
     ) -> None:
         """Substitute SoundVolumeView._query() to provide a test devices."""
-        lines: list[str] = [
-            (
-                "Name	Type	Direction	Device Name	Default	Default Multimedia	Default Communications	"
-                "Device State	Muted	Volume dB	Volume Percent	Min Volume dB	Max Volume dB	"
-                "Volume Step	Channels Count	Channels dB	Channels  Percent	Item ID	Command-Line Friendly ID	"
-                "Process Path	Process ID	Window Title	Registry Key	Speakers Config	Default Format	"
-            ),
-        ]
+        rows: list[SoundDeviceRow] = []
         device: SoundDevice
         for device in sound_devices:
-            line: list[str] = [""] * (SoundVolumeView.COLUMN_LAST + 1)
+            line: SoundDeviceRow = [""] * (SoundVolumeView.COLUMN_LAST + 1)
 
             line[SoundVolumeView.COLUMN_TYPE] = "Device"
             line[SoundVolumeView.COLUMN_DIRECTION] = {
@@ -64,12 +62,12 @@ class TestSoundVolumeView:
             line[SoundVolumeView.COLUMN_DEFAULT] = "Default" if device.selected else ""
             line[SoundVolumeView.COLUMN_REGISTRY_KEY] = str(device.id)
 
-            lines.append("\t".join(line))
+            rows.append(line)
 
-        def _query() -> list[str]:
-            return lines
+        def _query_device_rows() -> list[SoundDeviceRow]:
+            return rows
 
-        unfreeze_monkeypatch.setattr(sound_device_provider, "_query", _query)
+        unfreeze_monkeypatch.setattr(sound_device_provider, "_query_device_rows", _query_device_rows)
 
     @pytest.mark.unit
     class TestErrors:
@@ -142,6 +140,85 @@ class TestSoundVolumeView:
 
         # Assert
         assert result == sound_devices
+
+
+class TestPyWinUsb:
+    """Tests for PyWinUsb."""
+
+    @pytest.fixture
+    def usb_device_provider(self) -> PyWinUsb:
+        """PyWinUsb fixture."""
+        return PyWinUsb()
+
+    @pytest.fixture
+    def substitute_query(
+        self,
+        unfreeze_monkeypatch: pytest.MonkeyPatch,
+        usb_devices: list[UsbDevice],
+        usb_device_provider: PyWinUsb,
+    ) -> None:
+        """Substitute PyWinUsb._query() to provide a test devices."""
+        rows: list[UsbDeviceRow] = []
+        device: UsbDevice
+        for device in usb_devices:
+            row: UsbDeviceRow = {
+                PyWinUsb.COLUMN_DEVICE_PATH: str(device.id),
+                PyWinUsb.COLUMN_SERIAL_NUMBER: device.serial_number,
+                PyWinUsb.COLUMN_VENDOR_NAME: device.vendor_name,
+                PyWinUsb.COLUMN_VENDOR_ID: device.vendor_id,
+                PyWinUsb.COLUMN_PRODUCT_NAME: device.product_name,
+                PyWinUsb.COLUMN_PRODUCT_ID: device.product_id,
+                PyWinUsb.COLUMN_VERSION_NUMBER: device.version_number,
+            }
+
+            rows.append(row)
+
+        def _query_device_rows() -> list[UsbDeviceRow]:
+            return rows
+
+        unfreeze_monkeypatch.setattr(usb_device_provider, "_query_device_rows", _query_device_rows)
+
+    @pytest.mark.unit
+    class TestErrors:
+        """Tests for PyWinUsb when it raises an UsbDeviceProviderError."""
+
+    @pytest.mark.unit
+    class TestFind:
+        """Tests for PyWinUsb.find()."""
+
+        @pytest.mark.usefixtures("substitute_query")
+        def test_found(self, usb_devices: list[UsbDevice], usb_device_provider: PyWinUsb) -> None:
+            """Test for PyWinUsb.find() when a UsbDevice is found."""
+            # Arrange
+            expected: UsbDevice = usb_devices[0]
+            device_id: UUID = expected.id
+
+            # Act
+            result: UsbDevice | None = usb_device_provider.find(device_id)
+
+            # Assert
+            assert result == expected
+
+        def test_not_found(self, usb_device: UsbDevice, usb_device_provider: PyWinUsb) -> None:
+            """Test for PyWinUsb.find() when a UsbDevice is not found."""
+            # Arrange
+            device_id: UUID = usb_device.id
+
+            # Act
+            result: UsbDevice | None = usb_device_provider.find(device_id)
+
+            # Assert
+            assert result is None
+
+    @pytest.mark.unit
+    @pytest.mark.usefixtures("substitute_query")
+    def test_find_all(self, usb_devices: list[UsbDevice], usb_device_provider: PyWinUsb) -> None:
+        """Test for PyWinUsb.find_all()."""
+        # Act
+        result: list[UsbDevice] = usb_device_provider.find_all()
+
+        # Assert
+        assert result == usb_devices
 
 
 if __name__ == "__main__":

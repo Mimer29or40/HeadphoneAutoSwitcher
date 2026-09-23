@@ -39,6 +39,9 @@ if TYPE_CHECKING:
 # ---------- Domain Layer ---------- #
 
 
+# ----- Entity ----- #
+
+
 @dataclass(eq=False)
 class DummyEntity(BaseEntity):
     """Dummy value."""
@@ -64,6 +67,9 @@ def dummy_entities(dummy_entity: DummyEntity) -> list[DummyEntity]:
     return [dummy_entity] + [DummyEntity(value=f"entity{i}") for i in range(3)]
 
 
+# ----- Exception ----- #
+
+
 class DummyError(BaseError):
     """Dummy Error."""
 
@@ -81,6 +87,9 @@ DUMMY_ERROR_MSG: ErrorMsg = ErrorMsg("Dummy error.")
 def dummy_error_msg() -> ErrorMsg:
     """DummyRepository fixture."""
     return DUMMY_ERROR_MSG
+
+
+# ----- Service ----- #
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +125,9 @@ def dummy_service(dummy_service_should_raise: bool) -> BaseService:
     )
 
 
+# ----- Value ----- #
+
+
 @dataclass(frozen=True, slots=True)
 class DummyValue(BaseValue):
     """Dummy Value."""
@@ -144,6 +156,9 @@ def dummy_values(dummy_value: DummyValue) -> list[DummyValue]:
 # ---------- Application Layer ---------- #
 
 
+# ----- Application ----- #
+
+
 @dataclass(frozen=True, slots=True)
 class DummyApplication(BaseApplication):
     """Dummy application."""
@@ -157,6 +172,9 @@ class DummyApplication(BaseApplication):
 def dummy_application() -> DummyApplication:
     """DummyApplication values fixture."""
     return DummyApplication()
+
+
+# ----- Data Transfer Object ----- #
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,6 +252,9 @@ def dummy_outcome(dummy_outcome_value: Any) -> DummyOutcome:
     return DummyOutcome(dummy_outcome_value)
 
 
+# ----- Port ----- #
+
+
 @dataclass(frozen=True, slots=True)
 class DummyPort(BasePort):
     """Dummy rort."""
@@ -249,6 +270,9 @@ class DummyPort(BasePort):
 def dummy_port() -> DummyPort:
     """DummyPort fixture."""
     return DummyPort()
+
+
+# ----- Repository ----- #
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,6 +296,9 @@ def dummy_repository_values() -> list[Any]:
 def dummy_repository(dummy_repository_values: list[Any]) -> DummyRepository:
     """DummyRepository fixture."""
     return DummyRepository(dummy_repository_values)
+
+
+# ----- Use Case ----- #
 
 
 @dataclass(frozen=True, slots=True)
@@ -322,6 +349,9 @@ def dummy_use_case(
 # ---------- Interface Layer ---------- #
 
 
+# ----- Controller ----- #
+
+
 @dataclass(frozen=True, slots=True)
 class DummyController(BaseController):
     """Dummy controller."""
@@ -358,6 +388,9 @@ def dummy_controller(dummy_use_case: DummyUseCase, dummy_presenter: DummyPresent
     )
 
 
+# ----- Presenter ----- #
+
+
 @dataclass(frozen=True, slots=True)
 class DummyPresenter(BasePresenter):
     """Dummy Presenter."""
@@ -372,6 +405,9 @@ class DummyPresenter(BasePresenter):
 def dummy_presenter() -> DummyPresenter:
     """DummyPresenter fixture."""
     return DummyPresenter()
+
+
+# ----- View Model ----- #
 
 
 @dataclass(frozen=True, slots=True)
@@ -394,6 +430,9 @@ def dummy_view_model(dummy_view_model_value: str) -> DummyViewModel:
 
 
 # ---------- Infrastructure Layer ---------- #
+
+
+# ----- Framework ----- #
 
 
 @dataclass(frozen=True, slots=True)
