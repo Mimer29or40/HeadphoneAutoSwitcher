@@ -12,7 +12,7 @@ from typing import override
 from _ca.application import BaseApplication
 from _ca.application import BaseConfig
 from _ca.application import BaseConfigProvider
-from _ca.application import JsonConfigProvider
+from _ca.infrastructure import JsonConfigProvider
 from application.use_case import GetSoundDevicesUseCase
 from application.use_case import GetUsbDevicesUseCase
 from interface.controller import SoundDeviceController
@@ -55,7 +55,6 @@ class HeadphoneAutoSwitcherApplication(BaseApplication):
     config_file: Path = Path("./HeadphoneAutoSwitcher.json")  # Config loading should go in framework
     config_provider: BaseConfigProvider[HeadphoneAutoSwitcherConfig] | None = None
     config: HeadphoneAutoSwitcherConfig = field(init=False)
-    config_errors: list[str] = field(init=False)
 
     # Services
     sound_device_provider: SoundDeviceProvider
@@ -80,13 +79,8 @@ class HeadphoneAutoSwitcherApplication(BaseApplication):
                 file=self.config_file,
                 config_cls=HeadphoneAutoSwitcherConfig,
             )
-        config_errors: list[str] = []
-        config: HeadphoneAutoSwitcherConfig = config_provider.get(config_errors)
-        error: str
-        for error in config_errors:
-            logger.error("Config error: %s", error)
+        config: HeadphoneAutoSwitcherConfig = config_provider.get()
         object.__setattr__(self, "config", config)
-        object.__setattr__(self, "config_errors", config_errors)
 
         # Wire use cases
         get_sound_devices_use_case: GetSoundDevicesUseCase = GetSoundDevicesUseCase(

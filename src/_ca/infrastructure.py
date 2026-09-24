@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging.config
 import sys
 from abc import ABC
@@ -12,13 +13,42 @@ from typing import Any
 from typing import Never
 from typing import override
 
+from _ca.application import BaseConfig
+from _ca.application import BaseConfigProvider
+
 if TYPE_CHECKING:
     from logging import Logger
+    from pathlib import Path
 
     from _ca.application import BaseApplication
 
 
 logger: Logger = logging.getLogger("infrastructure")
+
+
+@dataclass(frozen=True, slots=True)
+class MemoryConfigProvider[C: BaseConfig](BaseConfigProvider[C]):
+    """ConfigProvider that loads a config from memory."""
+
+    data: dict[str, Any]
+    config_cls: type[C]
+
+    def get(self) -> C:
+        """Get the configuration."""
+        return self.config_cls(**self.data)
+
+
+@dataclass(frozen=True, slots=True)
+class JsonConfigProvider[C: BaseConfig](BaseConfigProvider[C]):
+    """ConfigProvider that loads a config from a JSON file."""
+
+    file: Path
+    config_cls: type[C]
+
+    def get(self) -> C:
+        """Get the configuration."""
+        data: dict[str, Any] = json.loads(self.file.read_text())
+        return self.config_cls(**data)
 
 
 class LogConfigProvider(ABC):

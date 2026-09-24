@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from abc import ABC
 from abc import abstractmethod
-from dataclasses import Field
 from dataclasses import dataclass
 from dataclasses import field
-from dataclasses import fields
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Self
@@ -19,7 +16,6 @@ from _ca.domain import ErrorMsg
 
 if TYPE_CHECKING:
     from logging import Logger
-    from pathlib import Path
 
     from _ca.utils import Result
 
@@ -27,6 +23,7 @@ if TYPE_CHECKING:
 logger: Logger = logging.getLogger("application")
 
 
+@dataclass(frozen=True, slots=True)
 class BaseConfig(ABC):
     """Base config class, implementing Clean Architecture patterns."""
 
@@ -34,59 +31,9 @@ class BaseConfig(ABC):
 class BaseConfigProvider[C: BaseConfig](ABC):
     """Base config provider class, implementing Clean Architecture patterns."""
 
-    config_cls: type[C]
-
     @abstractmethod
-    def get(self, errors: list[str]) -> C:
+    def get(self) -> C:
         """Get the configuration."""
-
-    def create_config(self, data: dict[str, Any], errors: list[str]) -> C:
-        """Create the Config object."""
-        values: dict[str, str] = {}
-        f: Field
-        for f in fields(self.config_cls):
-            if f.name not in data:
-                errors.append(f"{f.name} is required.")
-                continue
-            if data[f.name] == "":
-                errors.append(f"{f.name} is blank.")
-                continue
-            values[f.name] = data[f.name]
-
-        return self.config_cls(**values)
-
-
-@dataclass(frozen=True, slots=True)
-class MemoryConfigProvider[C: BaseConfig](BaseConfigProvider[C]):  # TODO(Ryan): Move ConfigProviders to infrastructure
-    """ConfigProvider that loads a config from memory."""
-
-    data: dict[str, Any]
-    config_cls: type[C]
-
-    def get(self, errors: list[str]) -> C:
-        """Get the configuration."""
-        return self.create_config(self.data, errors)
-
-
-@dataclass(frozen=True, slots=True)
-class JsonConfigProvider[C: BaseConfig](BaseConfigProvider[C]):
-    """ConfigProvider that loads a config from a JSON file."""
-
-    file: Path
-    config_cls: type[C]
-
-    def get(self, errors: list[str]) -> C:
-        """Get the configuration."""
-        data: dict[str, Any]
-        try:
-            data = json.loads(self.file.read_text())
-        except OSError:
-            errors.append(f"File not found: '{self.file}'")
-            data = {}
-        except json.decoder.JSONDecodeError:
-            errors.append(f"Unable to parse JSON file: '{self.file}'")
-            data = {}
-        return self.create_config(data, errors)
 
 
 class BaseApplication(ABC):
@@ -132,6 +79,14 @@ class BaseOutcome(ABC):
     @abstractmethod
     def __str__(self) -> str:
         """Convert the outcome into a human-readable string."""
+
+
+class BaseAdapter[A, B](ABC):
+    """Base class for adapters."""
+
+    @abstractmethod
+    def convert(self, value: A) -> B:
+        """Convert the value to another type."""
 
 
 # ----- Port ----- #

@@ -3,11 +3,12 @@ name = "headphone-auto-switcher"
 version = "3.0.0a1"
 requires-python = ">=3.14"
 dependencies = [
+    "click==8.5.0",
+    "pydantic==2.13.5",
+    "python-dateutil>=2.9.0",
+    "pywin32==312",
     "pywinusb==0.4.2",
     "simplifiedcli==1.2.0",
-    "pywin32==312",
-    "python-dateutil>=2.9.0",
-    "click==8.5.0",
 ]
 
 
