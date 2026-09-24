@@ -7,6 +7,10 @@
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/build/HeadphoneAutoSwitcher" />
+      <excludeFolder url="file://$MODULE_DIR$/HeadphoneAutoSwitcher.json" />
+      <excludeFolder url="file://$MODULE_DIR$/SoundVolumeView.cfg" />
+      <excludeFolder url="file://$MODULE_DIR$/coverage.md" />
+      <excludeFolder url="file://$MODULE_DIR$/htmlcov" />
     </content>
     <orderEntry type="jdk" jdkName="uv (HeadphoneAutoSwitcher)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

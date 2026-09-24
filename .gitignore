@@ -222,7 +222,6 @@ cython_debug/
 /__version__.py
 
 # Project specific files
-/src/devices.txt
-/src/SoundVolumeView.cfg
-/src/HeadphoneAutoSwitcher.json
-/src/handler_db.json
+/SoundVolumeView.cfg
+/HeadphoneAutoSwitcher.json
+/handler_db.json
