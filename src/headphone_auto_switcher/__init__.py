@@ -1,0 +1,1 @@
+"""Headphone Auto Switcher Application."""
