@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     from domain.entity import SoundDevice
     from domain.entity import UsbDevice
+    from domain.value import UsbDevicePacket
 
 
 logger: Logger = logging.getLogger("domain.service")
@@ -42,3 +43,19 @@ class UsbDeviceProvider(BaseService, ABC):
     @abstractmethod
     def find_all(self) -> list[UsbDevice]:
         """Get a list of all UsbDevices on the system."""
+
+
+class UsbDeviceListener(BaseService, ABC):
+    """Service to listen to UsbDevices for communication packets."""
+
+    @abstractmethod
+    def start(self, vendor_id: int, product_id: int) -> None:
+        """Start listening to UsbDevices."""
+
+    @abstractmethod
+    def stop(self) -> None:
+        """Stop listening to UsbDevices."""
+
+    @abstractmethod
+    def get_packet(self, block: bool = True, timeout: float | None = None) -> UsbDevicePacket:
+        """Get a packet from the Listener."""

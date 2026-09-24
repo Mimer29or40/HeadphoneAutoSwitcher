@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from logging import Logger
 
     from domain.service import SoundDeviceProvider
+    from domain.service import UsbDeviceListener
     from domain.service import UsbDeviceProvider
     from interface.presenter import SoundDevicePresenter
     from interface.presenter import UsbDevicePresenter
@@ -59,15 +60,19 @@ class HeadphoneAutoSwitcherApplication(BaseApplication):
     # Services
     sound_device_provider: SoundDeviceProvider
     sound_device_presenter: SoundDevicePresenter
+
     usb_device_provider: UsbDeviceProvider
+    usb_device_listener: UsbDeviceListener
     usb_device_presenter: UsbDevicePresenter
 
     # Use cases
     get_sound_devices_use_case: GetSoundDevicesUseCase = field(init=False)
-    usb_devices_use_case: GetUsbDevicesUseCase = field(init=False)
+
+    get_usb_devices_use_case: GetUsbDevicesUseCase = field(init=False)
 
     # Controllers
     sound_device_controller: SoundDeviceController = field(init=False)
+
     usb_device_controller: UsbDeviceController = field(init=False)
 
     @override

@@ -81,10 +81,10 @@ FRAMEWORK_SUCCESS: FrameworkResult = 0
 FRAMEWORK_FAILURE: FrameworkResult = -1
 
 
-class BaseFramework(ABC):
+class BaseFramework[A: BaseApplication](ABC):
     """Base framework class, implementing Clean Architecture patterns."""
 
-    application: BaseApplication
+    application: A
 
     @abstractmethod
     def run(self, *args: Any) -> FrameworkResult:

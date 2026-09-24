@@ -1,8 +1,10 @@
+# ruff: noqa: PLC0415
 """Infrastructure for command line based interactions."""
 
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
@@ -11,7 +13,9 @@ from typing import assert_never
 from typing import override
 
 import click
+from click import Abort
 from click import ClickException
+from click.exceptions import Exit
 
 from _ca.infrastructure import FRAMEWORK_FAILURE
 from _ca.infrastructure import FRAMEWORK_SUCCESS
@@ -20,11 +24,6 @@ from _ca.infrastructure import FrameworkResult
 from _ca.infrastructure import configure_logging
 from _ca.utils import Result
 from infrastructure.app import HeadphoneAutoSwitcherApplication
-from infrastructure.console import ConsoleLogConfigProvider
-from infrastructure.console import ConsoleSoundDevicePresenter
-from infrastructure.console import ConsoleUsbDevicePresenter
-from infrastructure.service import PyWinUsb
-from infrastructure.service import SoundVolumeView
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -33,7 +32,9 @@ if TYPE_CHECKING:
     from _ca.infrastructure import LogConfigProvider
     from _ca.interface import ErrorViewModel
     from domain.service import SoundDeviceProvider
+    from domain.service import UsbDeviceListener
     from domain.service import UsbDeviceProvider
+    from domain.value import UsbDevicePacket
     from interface.presenter import SoundDevicePresenter
     from interface.presenter import UsbDevicePresenter
     from interface.view_model import SoundDeviceViewModel
@@ -44,7 +45,7 @@ logger: Logger = logging.getLogger("infrastructure.cli")
 
 
 @dataclass(frozen=True, slots=True)
-class CLIFramework(BaseFramework):
+class CLIFramework(BaseFramework[HeadphoneAutoSwitcherApplication]):
     """Command line interface framework."""
 
     app: HeadphoneAutoSwitcherApplication
@@ -60,15 +61,18 @@ class CLIFramework(BaseFramework):
         except ClickException as e:
             logger.critical("Click Exception: %s", type(e).__name__, exc_info=False)
             result = e.message
-        except KeyboardInterrupt:
-            logger.critical("User interrupted")
-            result = "USER_INTERRUPT"
+        except Abort:
+            result = "click.Abort"
+        except Exit as e:
+            logger.critical("click.Exit")
+            result = e.exit_code
         except Exception as e:
             logger.exception("Unhandled exception:", exc_info=e)
             result = FRAMEWORK_FAILURE
         return result
 
     def _create_commands(self) -> click.Group:
+        # TODO(Ryan): Command to track time between heartbeats
 
         @click.group(help=self.app.description, invoke_without_command=True)
         @click.version_option(version=self.app.version)
@@ -81,6 +85,8 @@ class CLIFramework(BaseFramework):
         @click.pass_context
         def cli(ctx: click.Context, log_level: str) -> FrameworkResult:
             """Main CLI entry point."""
+            from infrastructure.console import ConsoleLogConfigProvider
+
             # Configure logging
             log_config_provider: LogConfigProvider = ConsoleLogConfigProvider(level=log_level)
             configure_logging(log_config_provider)
@@ -181,8 +187,19 @@ class CLIFramework(BaseFramework):
     # noinspection method-may-be-static
     def command_listen(self) -> FrameworkResult:
         """Run the listen command."""
-        logger.warning("Not implemented.")
-        return FRAMEWORK_FAILURE
+        vendor_id: int = int(self.app.config.vendor_id, 16)
+        product_id: int = int(self.app.config.product_id, 16)
+
+        try:
+            self.app.usb_device_listener.start(vendor_id, product_id)
+            while True:
+                packet: UsbDevicePacket = self.app.usb_device_listener.get_packet()
+                click.echo(f"Packet Received: {packet}")
+                time.sleep(0.1)
+        finally:
+            self.app.usb_device_listener.stop()
+
+        return FRAMEWORK_SUCCESS
 
     # noinspection method-may-be-static
     def command_run(self) -> FrameworkResult:
@@ -209,17 +226,25 @@ def _make_table[T: Sequence](rows: list[T]) -> list[str]:
 
 def create_framework() -> BaseFramework:
     """Create the framework."""
+    from infrastructure.console import ConsoleSoundDevicePresenter
+    from infrastructure.console import ConsoleUsbDevicePresenter
+    from infrastructure.service import PyWinUsbListener
+    from infrastructure.service import PyWinUsbProvider
+    from infrastructure.service import SoundVolumeViewProvider
+
     # Create application with dependencies
-    sound_device_provider: SoundDeviceProvider = SoundVolumeView()
+    sound_device_provider: SoundDeviceProvider = SoundVolumeViewProvider()
     sound_device_presenter: SoundDevicePresenter = ConsoleSoundDevicePresenter()
 
-    usb_device_provider: UsbDeviceProvider = PyWinUsb()
+    usb_device_provider: UsbDeviceProvider = PyWinUsbProvider()
+    usb_device_listener: UsbDeviceListener = PyWinUsbListener()
     usb_device_presenter: UsbDevicePresenter = ConsoleUsbDevicePresenter()
 
     app: HeadphoneAutoSwitcherApplication = HeadphoneAutoSwitcherApplication(
         sound_device_provider=sound_device_provider,
         sound_device_presenter=sound_device_presenter,
         usb_device_provider=usb_device_provider,
+        usb_device_listener=usb_device_listener,
         usb_device_presenter=usb_device_presenter,
     )
 

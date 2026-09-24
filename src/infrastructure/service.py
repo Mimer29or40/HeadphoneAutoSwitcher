@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import subprocess
 import tempfile
 from codecs import BOM_UTF16_LE
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
+from queue import Empty
+from queue import Full
+from queue import Queue
 from subprocess import CompletedProcess
 from typing import TYPE_CHECKING
 from typing import Any
@@ -25,8 +30,10 @@ from domain.entity import UsbDevice
 from domain.exception import SoundDeviceProviderError
 from domain.exception import UsbDeviceProviderError
 from domain.service import SoundDeviceProvider
+from domain.service import UsbDeviceListener
 from domain.service import UsbDeviceProvider
 from domain.value import SoundDeviceType
+from domain.value import UsbDevicePacket
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -61,7 +68,7 @@ DEFAULT_SOUND_VOLUME_VIEW_OUTPUT_FILE: Path = Path(tempfile.gettempdir()) / "Sou
 
 # noinspection DuplicatedCode
 @dataclass(frozen=True, slots=True)
-class SoundVolumeView(SoundDeviceProvider):
+class SoundVolumeViewProvider(SoundDeviceProvider):
     """SoundDeviceProvider with SoundVolumeView."""
 
     sound_volume_view_path: Path = DEFAULT_SOUND_VOLUME_VIEW_PATH
@@ -185,7 +192,7 @@ PY_WIN_USB_ERROR: ErrorMsg = ErrorMsg("pywinusb: error")
 
 # noinspection DuplicatedCode
 @dataclass(frozen=True, slots=True)
-class PyWinUsb(UsbDeviceProvider):
+class PyWinUsbProvider(UsbDeviceProvider):
     """UsbDeviceProvider with pywinusb."""
 
     @override
@@ -261,3 +268,62 @@ class PyWinUsb(UsbDeviceProvider):
     COLUMN_VENDOR_ID: ClassVar[str] = "vendor_id"
     COLUMN_VENDOR_NAME: ClassVar[str] = "vendor_name"
     COLUMN_VERSION_NUMBER: ClassVar[str] = "version_number"
+
+
+@dataclass(frozen=True, slots=True)
+class PyWinUsbListener(UsbDeviceListener):
+    """Service to listen to UsbDevices for communication packets."""
+
+    max_queue_size: int = 100
+
+    _devices: list[HidDevice] = field(default_factory=list, init=False)
+    _queue: Queue[UsbDevicePacket] = field(init=False)
+
+    @override
+    def start(self, vendor_id: int, product_id: int) -> None:
+        """Start listening to UsbDevices."""
+        logger.info("Loading UsbDevices: vendor_id=%04X product_id=%04X", vendor_id, product_id)
+
+        self._create_queue()
+
+        filter: HidDeviceFilter = HidDeviceFilter(vendor_id=vendor_id, product_id=product_id)
+        device: HidDevice
+        for device in filter.get_devices():
+            logger.debug("Found UsbDevice: %s[%s]", device.product_name, device.instance_id)
+            try:
+                device.open()
+                device.set_raw_data_handler(self._data_handler_)
+                self._devices.append(device)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Unable to open device: %s", device.product_name, exc_info=e)
+
+    @override
+    def stop(self) -> None:
+        """Stop listening to UsbDevices."""
+        device: HidDevice
+        for device in self._devices:
+            with contextlib.suppress(BaseException):
+                device.close()
+        self._devices.clear()
+
+        self._queue.shutdown()
+        object.__delattr__(self, "_queue")
+
+    @override
+    def get_packet(self, block: bool = True, timeout: float | None = None) -> UsbDevicePacket:
+        """Get a packet from the Listener."""
+        return self._queue.get(block=block, timeout=timeout)
+
+    def _create_queue(self) -> None:
+        queue: Queue[UsbDevicePacket] = Queue(maxsize=self.max_queue_size)
+        object.__setattr__(self, "_queue", queue)
+
+    def _data_handler_(self, data: list[int]) -> None:
+        """Data handler function called on device listener threads."""
+        packet: UsbDevicePacket = UsbDevicePacket(data)
+        try:
+            self._queue.put_nowait(packet)
+        except Full:
+            with contextlib.suppress(Empty):
+                self._queue.get_nowait()
+            self._queue.put_nowait(packet)

@@ -61,7 +61,7 @@ class BaseRequest(ABC):
 
     @abstractmethod
     def convert(self) -> dict[str, Any]:
-        """Convert the requested data to a standardized form."""
+        """Convert validated request data to use case parameters."""
 
 
 class BaseResponse[T: BaseEntity](ABC):

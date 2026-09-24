@@ -1,4 +1,4 @@
-"""Application data transfer objects (DTOs), as described by Clean Architecture."""
+"""Application ports, as described by Clean Architecture."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from domain.entity import UsbDevice
 
 
-logger: Logger = logging.getLogger("application.dto")
+logger: Logger = logging.getLogger("application.port")
 
 
 @dataclass(frozen=True, slots=True)

@@ -13,10 +13,13 @@ from _ca.domain import ErrorMsg
 from _ca.utils import Result
 from application.dto import GetSoundDevicesRequest
 from application.dto import GetUsbDevicesRequest
+from application.dto import ListenToDevicesRequest
 from application.dto import SoundDeviceResponse
 from application.dto import UsbDeviceResponse
 from domain.exception import SoundDeviceProviderError
 from domain.exception import UsbDeviceProviderError
+from domain.service import UsbDeviceListener
+from domain.value import UsbDevicePacket
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -76,3 +79,36 @@ class GetUsbDevicesUseCase(BaseUseCase):
         except UsbDeviceProviderError as e:
             logger.exception("UsbDeviceProvider raised an error: %s", e.message, exc_info=False)
             return Result.err(e.message)
+
+
+@dataclass(frozen=True, slots=True)
+class ListenToDevicesUseCase(BaseUseCase):
+    """UseCase to listen to the configured UsbDevice."""
+
+    usb_device_listener: UsbDeviceListener
+
+    @override
+    def execute(self, request: ListenToDevicesRequest) -> Result[None, ErrorMsg]:
+        request_dict: dict[str, Any] = request.convert()
+        vendor_id: int = request_dict["vendor_id"]
+        product_id: int = request_dict["product_id"]
+
+        try:
+            self.usb_device_listener.start(vendor_id, product_id)
+            while True:
+                packet: UsbDevicePacket = self.usb_device_listener.get_packet()
+                click.echo(f"Packet Received: {packet}")
+                time.sleep(0.1)
+        finally:
+            self.usb_device_listener.stop()
+
+        # try:
+        #     devices: list[UsbDevice] = self.usb_device_provider.find_all()
+        #     if len(devices) == 0:
+        #         return Result.err(NO_USB_DEVICES_FOUND_ERROR_MSG)
+        #
+        #     responses: list[UsbDeviceResponse] = [UsbDeviceResponse.from_entity(d) for d in devices]
+        #     return Result.ok(responses)
+        # except UsbDeviceProviderError as e:
+        #     logger.exception("UsbDeviceProvider raised an error: %s", e.message, exc_info=False)
+        #     return Result.err(e.message)
