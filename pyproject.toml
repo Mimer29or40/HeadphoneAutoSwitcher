@@ -3,18 +3,38 @@ name = "headphone-auto-switcher"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
-    "pywinusb==0.4.2",
-    "simplifiedcli==1.2.0",
-    "pywin32==312",
+    "click==8.5.0",
     "python-dateutil>=2.9.0",
+    "pywin32==312",
+    "pywinusb==0.4.2",  #; platform_system == 'Windows'",
+    "simplifiedcli==1.2.0",
 ]
-
 
 [project.optional-dependencies]
 dev = [
     "pyinstaller>=6.21.0",
+    "pytest-check>=2.9.1",
     "pytest-cov>=7.1.0",
     "pytest>=9.1.1",
+]
+
+[project.scripts]
+
+[tool.pytest]
+markers = [
+    "unit",
+    "integration",
+    "end_to_end",
+    "architectural",
+]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.report]
+exclude_also = [
+    "assert_never(.*)",
+    'if __name__ == .__main__.:',
+    'if TYPE_CHECKING:',
 ]
 
 [tool.uv]
@@ -41,6 +61,8 @@ ignore = [
     "A005",
     "A006",
     "ANN401",
+    "B024",
+    "B027",
     "COM812",
     "D203",
     "D213",

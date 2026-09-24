@@ -2,15 +2,7 @@
 set shell := ["powershell.exe", "-c"]
 
 export PATH := join(justfile_directory(), ".env", "bin") + ":" + env_var('PATH')
-
-init:
-    prek install
-
-sync:
-    uv sync --all-extras
-
-tests:
-    uv run pytest --cov=src --cov-report=markdown
+export PYTHONPATH := join(justfile_directory(), "src")
 
 build:
     uv run pyinstaller \
