@@ -3,54 +3,45 @@
 from __future__ import annotations
 
 import logging.config
-import sys
 from abc import ABC
-from abc import abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from typing import Any
-from typing import Never
-
-from ca.application import BaseApplicationContainer
-from ca.application import BaseApplicationFactory
 
 if TYPE_CHECKING:
     from logging import Logger
 
+    from ca.domain import ErrorMsg
+
 logger: Logger = logging.getLogger("ca.presentation")
 
 
-type FrameworkResult = str | int | None
-
-FRAMEWORK_SUCCESS: FrameworkResult = 0
-FRAMEWORK_FAILURE: FrameworkResult = -1
+# ---------- View Model ---------- #
 
 
-class BaseFramework[A: BaseApplicationContainer](ABC):
-    """Base framework class."""
-
-    app_factory: BaseApplicationFactory[A]
-
-    @abstractmethod
-    def run(self, *args: Any) -> FrameworkResult:
-        """Run the framework."""
-
-    def main(self) -> Never:
-        """Main entry point for the framework."""
-        args: list[str] = sys.argv[1:]
-        result: FrameworkResult = self.run(*args)
-        sys.exit(result)
+class BaseViewModel(ABC):
+    """Clean architecture base view model class."""
 
 
-class LogConfigProvider(ABC):
-    """Provider for logging configurations."""
+@dataclass(frozen=True, slots=True)
+class ErrorViewModel(BaseViewModel):
+    """Clean architecture base view model class."""
 
-    @abstractmethod
-    def get(self) -> dict[str, Any]:
-        """Get the logging configuration."""
+    message: str
+    code: str | None
 
 
-def configure_logging(log_config: LogConfigProvider) -> None:
-    """Configure logging module."""
-    config: dict[str, Any] = log_config.get()
+# ---------- Presenter ---------- #
 
-    logging.config.dictConfig(config)
+
+class BasePresenter(ABC):
+    """Clean architecture base presenter class."""
+
+    @staticmethod
+    def present_error(message: ErrorMsg) -> ErrorViewModel:
+        """Create an ErrorViewModel from an ErrorMsg."""
+        return ErrorViewModel(message=message.message, code=message.code)
+
+    @staticmethod
+    def present_validation_error(error: ValueError) -> ErrorViewModel:
+        """Create an ErrorViewModel from a validation error."""
+        return ErrorViewModel(message=str(error), code="VALIDATION_ERROR")
