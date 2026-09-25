@@ -1,10 +1,9 @@
-"""Headphone Auto Switcher command line interface presentation module."""
+"""Headphone Auto Switcher command line interface infrastructure module."""
 
 from __future__ import annotations
 
 import inspect
 import logging.config
-import sys
 from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
@@ -23,14 +22,14 @@ from click import Context
 from click import Group
 from click.exceptions import Exit
 
-from ca.application import BaseApplicationContainer
+from ca.application import BaseApplication
 from ca.application import BaseApplicationFactory
-from ca.presentation import FRAMEWORK_FAILURE
-from ca.presentation import FRAMEWORK_SUCCESS
-from ca.presentation import BaseFramework
-from ca.presentation import FrameworkResult
-from ca.presentation import LogConfigProvider
-from ca.presentation import configure_logging
+from ca.infrastructure import FRAMEWORK_FAILURE
+from ca.infrastructure import FRAMEWORK_SUCCESS
+from ca.infrastructure import BaseFramework
+from ca.infrastructure import FrameworkResult
+from ca.infrastructure import LogConfigProvider
+from ca.infrastructure import configure_logging
 from ca.utils import Result
 
 if TYPE_CHECKING:
@@ -39,14 +38,20 @@ if TYPE_CHECKING:
     from logging import Logger
     from types import MethodType
 
-logger: Logger = logging.getLogger(__name__)
+    from ca.presentation import ErrorViewModel
+    from headphone_auto_switcher.domain.value import UsbDevicePacket
+    from headphone_auto_switcher.presentation.view_model import SoundDeviceViewModel
+    from headphone_auto_switcher.presentation.view_model import UsbDeviceViewModel
+    from headphone_auto_switcher.presentation.view_model import ValidationResultViewModel
+
+logger: Logger = logging.getLogger("has.infrastructure.cli")
 
 
 DEFAULT_CONSOLE_LOG_FORMAT: dict[str, Any] = {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}
 
 
 @dataclass(frozen=True, slots=True)
-class ConsoleLogConfigProvider(LogConfigProvider):
+class CLILogConfigProvider(LogConfigProvider):
     """Console logging configuration."""
 
     level: str = "WARNING"
@@ -76,7 +81,7 @@ class ConsoleLogConfigProvider(LogConfigProvider):
         }
 
 
-class BaseClickFramework[A: BaseApplicationContainer](BaseFramework[A], ABC):
+class BaseClickFramework[A: BaseApplication](BaseFramework[A], ABC):
     """Base click framework."""
 
     @override
@@ -104,7 +109,6 @@ class BaseClickFramework[A: BaseApplicationContainer](BaseFramework[A], ABC):
         return result
 
     def _create_commands(self) -> Group:
-        # TODO(Ryan): Command to track time between heartbeats
         @click.group(help=self.app_factory.description, invoke_without_command=True)
         @click.version_option(version=self.app_factory.version, prog_name=self.app_factory.name)
         @click.option(
@@ -119,7 +123,7 @@ class BaseClickFramework[A: BaseApplicationContainer](BaseFramework[A], ABC):
             # from infrastructure.console import ConsoleLogConfigProvider
 
             # Configure logging
-            log_config_provider: LogConfigProvider = ConsoleLogConfigProvider(level=log_level)
+            log_config_provider: LogConfigProvider = CLILogConfigProvider(level=log_level)
             configure_logging(log_config_provider)
 
             logger.debug("Application run with args: %s", ctx.args)
@@ -129,7 +133,7 @@ class BaseClickFramework[A: BaseApplicationContainer](BaseFramework[A], ABC):
             ctx.obj["container"] = self.app_factory.create()
 
             if ctx.invoked_subcommand is None:
-                container: BaseApplicationContainer = ctx.obj["container"]
+                container: BaseApplication = ctx.obj["container"]
                 return self.command_default(container)
             return None
 
@@ -160,8 +164,16 @@ class BaseClickFramework[A: BaseApplicationContainer](BaseFramework[A], ABC):
         """Command to run when user supplied no command."""
 
 
-class HASApplicationContainer(BaseApplicationContainer):
+class HASApplication(BaseApplication):
     """Headphone Auto Switcher application container."""
+
+    sound_device_controller: Any
+    usb_device_controller: Any
+    run_controller: Any
+
+    @override
+    def __post_init__(self) -> None:
+        pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,28 +185,51 @@ class HASApplicationFactory(BaseApplicationFactory):
     version: str = "3.0.0a1"
 
     @override
-    def create(self) -> HASApplicationContainer:
-        return HASApplicationContainer()
+    def create(self) -> HASApplication:
+        # # Create application with dependencies
+        # from infrastructure.console import ConsoleSoundDevicePresenter
+        # from infrastructure.console import ConsoleUsbDevicePresenter
+        # from infrastructure.service import PyWinUsbListener
+        # from infrastructure.service import PyWinUsbProvider
+        # from infrastructure.service import SoundVolumeViewProvider
+        #
+        # # Create application with dependencies
+        # sound_device_provider: SoundDeviceProvider = SoundVolumeViewProvider()
+        # sound_device_presenter: SoundDevicePresenter = ConsoleSoundDevicePresenter()
+        #
+        # usb_device_provider: UsbDeviceProvider = PyWinUsbProvider()
+        # usb_device_listener: UsbDeviceListener = PyWinUsbListener()
+        # usb_device_presenter: UsbDevicePresenter = ConsoleUsbDevicePresenter()
+        #
+        # app: HASApplication = HASApplication(
+        #     sound_device_provider=sound_device_provider,
+        #     sound_device_presenter=sound_device_presenter,
+        #     usb_device_provider=usb_device_provider,
+        #     usb_device_listener=usb_device_listener,
+        #     usb_device_presenter=usb_device_presenter,
+        # )
+        return HASApplication()
 
 
 @dataclass(frozen=True, slots=True)
-class HASClickFramework(BaseClickFramework[HASApplicationContainer]):
+class HASClickFramework(BaseClickFramework[HASApplication]):
     """Headphone Auto Switcher click framework."""
 
     app_factory: HASApplicationFactory
 
+    # TODO(Ryan): Command to track time between heartbeats
+
     @override
-    def command_default(self, app: HASApplicationContainer) -> FrameworkResult:
+    def command_default(self, app: HASApplication) -> FrameworkResult:
         return self.command_shell(app)
 
     # noinspection method-may-be-static
-    def command_shell(self, app: HASApplicationContainer) -> FrameworkResult:  # noqa: ARG002
+    def command_shell(self, app: HASApplication) -> FrameworkResult:  # noqa: ARG002
         """Drop into an interactive shell."""
         logger.warning("Not implemented.")
         return FRAMEWORK_FAILURE
 
-    # noinspection method-may-be-static
-    def command_sound(self, app: HASApplicationContainer) -> FrameworkResult:  # noqa: ARG002
+    def command_sound(self, app: HASApplication) -> FrameworkResult:
         """Run the sound command."""
         result: Result[list[SoundDeviceViewModel], ErrorViewModel] = (
             app.sound_device_controller.handle_get_sound_devices()
@@ -208,20 +243,14 @@ class HASClickFramework(BaseClickFramework[HASApplicationContainer]):
 
             self._output_table(table)
 
-            return 0
+            return FRAMEWORK_SUCCESS
 
         if Result.is_err(result):
-            error_vm: ErrorViewModel = result.value
-            logger.error(error_vm)
-            return 1
+            return self._handle_error(result.value)
 
         assert_never(result)  # ty:ignore[type-assertion-failure]
 
-        logger.warning("Not implemented.")
-        return FRAMEWORK_FAILURE
-
-    # noinspection method-may-be-static
-    def command_usb(self, app: HASApplicationContainer) -> FrameworkResult:  # noqa: ARG002
+    def command_usb(self, app: HASApplication) -> FrameworkResult:
         """Run the usb command."""
         result: Result[list[UsbDeviceViewModel], ErrorViewModel] = app.usb_device_controller.handle_get_usb_devices()
 
@@ -236,49 +265,63 @@ class HASClickFramework(BaseClickFramework[HASApplicationContainer]):
             return FRAMEWORK_SUCCESS
 
         if Result.is_err(result):
-            error_vm: ErrorViewModel = result.value
-            logger.error(error_vm)
-            return FRAMEWORK_FAILURE
+            return self._handle_error(result.value)
 
         assert_never(result)  # ty:ignore[type-assertion-failure]
 
-    # noinspection method-may-be-static
-    def command_validate(self, app: HASApplicationContainer) -> FrameworkResult:  # noqa: ARG002
+    def command_validate(self, app: HASApplication) -> FrameworkResult:
         """Run the validate command."""
-        # try:
-        #     app.validate_configuration.execute()
-        # except ConfigurationError as e:
-        #     raise click.ClickException(f"Configuration errors: {e}") from e
-        # except UnsupportedHeadphonesError as e:
-        #     raise click.ClickException(f"Unsupported headphones: {e}") from e
-        # except NoDevicesFoundError as e:
-        #     raise click.ClickException(str(e)) from e
-        # click.echo("Configuration valid")
+        result: Result[ValidationResultViewModel, ErrorViewModel] = app.run_controller.handle_validate()
 
-        logger.warning("Not implemented.")
-        return FRAMEWORK_FAILURE
+        if Result.is_ok(result):
+            validation_result: ValidationResultViewModel = result.value
 
-    # noinspection method-may-be-static
-    def command_listen(self, app: HASApplicationContainer) -> FrameworkResult:  # noqa: ARG002
+            if validation_result.is_valid:
+                click.echo("Configuration is valid!")
+                return FRAMEWORK_SUCCESS
+
+            click.echo("Configuration is invalid!")
+            reason: str
+            for reason in validation_result.reasons:
+                click.echo(f" - {reason}")
+            return "VALIDATION_FAILURE"
+
+        if Result.is_err(result):
+            return self._handle_error(result.value)
+
+        assert_never(result)  # ty:ignore[type-assertion-failure]
+
+    def command_listen(self, app: HASApplication) -> FrameworkResult:
         """Run the listen command."""
-        # try:
-        #     app.listen_to_device.execute(lambda d: click.echo(f"{d.received_at}: {d.packet}"))
-        # except KeyboardInterrupt:
-        #     click.echo("Stopped.", err=True)
 
-        logger.warning("Not implemented.")
-        return FRAMEWORK_FAILURE
+        def receive(packet: UsbDevicePacket) -> None:
+            click.echo(f"Packet received: {packet}")
 
-    # noinspection method-may-be-static
-    def command_run(self, app: HASApplicationContainer) -> FrameworkResult:  # noqa: ARG002
+        result: Result[None, ErrorViewModel] = app.run_controller.handle_listen(receive)
+
+        if Result.is_ok(result):
+            return FRAMEWORK_SUCCESS
+
+        if Result.is_err(result):
+            return self._handle_error(result.value)
+
+        assert_never(result)  # ty:ignore[type-assertion-failure]
+
+    def command_run(self, app: HASApplication) -> FrameworkResult:
         """Run the run command."""
-        # switcher = app.auto_switchers.create()
-        # try:
-        #     switcher.execute()
-        # except KeyboardInterrupt:
-        #     switcher.stop()
+        result: Result[None, ErrorViewModel] = app.run_controller.handle_run()
 
-        logger.warning("Not implemented.")
+        if Result.is_ok(result):
+            return FRAMEWORK_SUCCESS
+
+        if Result.is_err(result):
+            return self._handle_error(result.value)
+
+        assert_never(result)  # ty:ignore[type-assertion-failure]
+
+    @staticmethod
+    def _handle_error(error_vm: ErrorViewModel) -> FrameworkResult:
+        logger.error(error_vm)
         return FRAMEWORK_FAILURE
 
     @staticmethod
@@ -305,31 +348,6 @@ class HASClickFramework(BaseClickFramework[HASApplicationContainer]):
 
 def create_framework() -> BaseClickFramework:
     """Create the framework."""
-    # # Create application with dependencies
-    # from infrastructure.console import ConsoleSoundDevicePresenter
-    # from infrastructure.console import ConsoleUsbDevicePresenter
-    # from infrastructure.service import PyWinUsbListener
-    # from infrastructure.service import PyWinUsbProvider
-    # from infrastructure.service import SoundVolumeViewProvider
-    #
-    # # Create application with dependencies
-    # sound_device_provider: SoundDeviceProvider = SoundVolumeViewProvider()
-    # sound_device_presenter: SoundDevicePresenter = ConsoleSoundDevicePresenter()
-    #
-    # usb_device_provider: UsbDeviceProvider = PyWinUsbProvider()
-    # usb_device_listener: UsbDeviceListener = PyWinUsbListener()
-    # usb_device_presenter: UsbDevicePresenter = ConsoleUsbDevicePresenter()
-    #
-    # app: HeadphoneAutoSwitcherApplication = HeadphoneAutoSwitcherApplication(
-    #     sound_device_provider=sound_device_provider,
-    #     sound_device_presenter=sound_device_presenter,
-    #     usb_device_provider=usb_device_provider,
-    #     usb_device_listener=usb_device_listener,
-    #     usb_device_presenter=usb_device_presenter,
-    # )
-    #
-    # framework: ClickFramework = ClickFramework(app)
-
     # Create application factory
     app_info: HASApplicationFactory = HASApplicationFactory()
 

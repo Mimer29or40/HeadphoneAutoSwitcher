@@ -8,4 +8,4 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from logging import Logger
 
-logger: Logger = logging.getLogger("presentation")
+logger: Logger = logging.getLogger("has.presentation")
