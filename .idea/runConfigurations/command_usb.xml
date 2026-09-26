@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="command usb" type="PythonConfigurationType" factoryName="Python" folderName="Command">
-    <module name="headphone-auto-switcher" />
+    <module name="has" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

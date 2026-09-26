@@ -7,7 +7,7 @@ export PYTHONPATH := join(justfile_directory(), "src")
 __run__ module="" coverage="src":
     uv run pytest --cov={{ coverage }} --cov-report=markdown --cov-report=html {{ module }}
 
-__run_no_coverage__ module="":
+__run-no-cov__ module="":
     uv run pytest {{ module }}
 
 _all: __run__

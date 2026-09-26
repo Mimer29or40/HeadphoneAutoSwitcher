@@ -7,5 +7,8 @@ export PYTHONPATH := join(justfile_directory(), "src")
 init:
     prek install
 
+pre-commit:
+    prek run --all-files
+
 sync:
     uv sync --all-extras

@@ -415,7 +415,6 @@ class HeadphoneAutoSwitcher:
 
 
 # ---------- Command Stuff ---------- #
-# TODO(Ryan): Command to track time between heartbeats
 
 
 type CommandResult = int | str
@@ -506,8 +505,8 @@ def cmd_run() -> CommandResult:
 def cmd_win_service(command_name: str | None, *args: Any) -> None:
     """Dispatch command to win32."""
     global Service  # ty:ignore[unresolved-global]
-    import win32service  # noqa: PLC0415  # ty:ignore[unresolved-import]
-    import win32serviceutil  # noqa: PLC0415
+    import win32service  # ty:ignore[unresolved-import]
+    import win32serviceutil
 
     # noinspection PyRedeclaration
     class Service(win32serviceutil.ServiceFramework):
@@ -542,7 +541,7 @@ def cmd_win_service(command_name: str | None, *args: Any) -> None:
             self.switcher.stop()
 
     if command_name is None:
-        import servicemanager  # ty:ignore[unresolved-import]  # noqa: PLC0415
+        import servicemanager  # ty:ignore[unresolved-import]
 
         servicemanager.Initialize()
         servicemanager.PrepareToHostSingle(Service)

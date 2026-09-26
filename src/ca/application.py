@@ -15,8 +15,10 @@ from ca.domain import BaseEntity
 from ca.domain import BaseRepository
 from ca.domain import BaseService
 from ca.domain import ErrorMsg
+from ca.utils import log_call
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from logging import Logger
 
     from ca.utils import Result
@@ -74,6 +76,12 @@ class BaseResponse[T: BaseEntity](ABC):
     def from_entity(cls, entity: T) -> Self:
         """Create a Response from an Entity."""
 
+    @classmethod
+    @log_call(type="class")
+    def from_entities(cls, entities: Iterable[T]) -> list[Self]:
+        """Create multiple Responses from many Entities."""
+        return [cls.from_entity(entity) for entity in entities]
+
 
 # ---------- Port ---------- #
 
@@ -85,19 +93,23 @@ class BasePort(ABC):
 # ---------- Use Case ---------- #
 
 
+type UseCaseRequestType = BaseRequest
+type UseCaseResponseType = BaseResponse | list[BaseResponse]
 type RegisteredItem = BaseService | BaseRepository
 
 
 @dataclass(frozen=True, slots=True)
-class BaseUseCase[REQ: BaseRequest, RES: BaseResponse](ABC):
+class BaseUseCase[REQ: UseCaseRequestType, RES: UseCaseResponseType](ABC):
     """Clean architecture base use case class."""
 
     _optional: dict[str, RegisteredItem] = field(default_factory=dict, init=False)
 
+    @log_call(type="method", level=logging.DEBUG)
     def register(self, name: str, item: RegisteredItem) -> None:
         """Register an optional extension to the UseCase."""
         self._optional[name] = item
 
+    @log_call(type="method", level=logging.DEBUG)
     def unregister(self, name: str) -> None:
         """Unregister an optional extension from the UseCase."""
         self._optional.pop(name)

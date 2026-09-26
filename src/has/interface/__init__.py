@@ -1,4 +1,4 @@
-"""Clean Architecture package."""
+"""Headphone Auto Switcher interface module."""
 
 from __future__ import annotations
 
@@ -8,4 +8,4 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from logging import Logger
 
-logger: Logger = logging.getLogger(__name__)
+logger: Logger = logging.getLogger("has.interface")
