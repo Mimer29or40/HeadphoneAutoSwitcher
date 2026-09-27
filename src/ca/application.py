@@ -8,12 +8,11 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from dataclasses import field
 from typing import TYPE_CHECKING
+from typing import Any
 from typing import Self
 from typing import TypedDict
 
 from ca.domain import BaseEntity
-from ca.domain import BaseRepository
-from ca.domain import BaseService
 from ca.domain import ErrorMsg
 from ca.utils import log_call
 
@@ -33,6 +32,7 @@ class BaseApplication(ABC):
     """Clean architecture base application class."""
 
     @abstractmethod
+    @log_call(type="method")
     def __post_init__(self) -> None:
         """Wire up application UseCases and Controllers."""
 
@@ -45,6 +45,7 @@ class BaseApplicationFactory[A: BaseApplication](ABC):
     version: str
 
     @abstractmethod
+    @log_call(type="method")
     def create(self) -> A:
         """Create the application."""
 
@@ -60,10 +61,12 @@ class BaseRequest[T: BaseRequestDict](ABC):
     """Clean architecture base request class."""
 
     @abstractmethod
+    @log_call(type="method")
     def __post_init__(self) -> None:
         """Validate Request parameters."""
 
     @abstractmethod
+    @log_call(type="method")
     def convert(self) -> T:
         """Convert the Request parameters into UseCase parameters."""
 
@@ -73,6 +76,7 @@ class BaseResponse[T: BaseEntity](ABC):
 
     @classmethod
     @abstractmethod
+    @log_call(type="method")
     def from_entity(cls, entity: T) -> Self:
         """Create a Response from an Entity."""
 
@@ -95,25 +99,25 @@ class BasePort(ABC):
 
 type UseCaseRequestType = BaseRequest
 type UseCaseResponseType = BaseResponse | list[BaseResponse]
-type RegisteredItem = BaseService | BaseRepository
 
 
 @dataclass(frozen=True, slots=True)
 class BaseUseCase[REQ: UseCaseRequestType, RES: UseCaseResponseType](ABC):
     """Clean architecture base use case class."""
 
-    _optional: dict[str, RegisteredItem] = field(default_factory=dict, init=False)
+    optional: dict[str, Any] = field(default_factory=dict, init=False)
 
-    @log_call(type="method", level=logging.DEBUG)
-    def register(self, name: str, item: RegisteredItem) -> None:
+    @log_call(type="method")
+    def register(self, name: str, extension: Any) -> None:
         """Register an optional extension to the UseCase."""
-        self._optional[name] = item
+        self.optional[name] = extension
 
-    @log_call(type="method", level=logging.DEBUG)
+    @log_call(type="method")
     def unregister(self, name: str) -> None:
         """Unregister an optional extension from the UseCase."""
-        self._optional.pop(name)
+        self.optional.pop(name)
 
     @abstractmethod
+    @log_call(type="method")
     def execute(self, request: REQ) -> Result[RES, ErrorMsg]:
         """Execute the UseCase with the provided Parameters."""

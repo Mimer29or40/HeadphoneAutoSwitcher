@@ -15,6 +15,7 @@ from typing import Never
 
 from ca.application import BaseApplication
 from ca.application import BaseApplicationFactory
+from ca.domain import BaseError
 from ca.domain import ErrorMsg
 from ca.domain import FrameworkError
 from ca.utils import log_call
@@ -30,9 +31,10 @@ logger: Logger = logging.getLogger("ca.infrastructure")
 
 type FrameworkResult = str | int | None
 
-FRAMEWORK_SUCCESS: FrameworkResult = 0
-FRAMEWORK_FAILURE: FrameworkResult = 1
-FRAMEWORK_ERROR: FrameworkResult = -1
+RESULT_SUCCESS: FrameworkResult = 0
+RESULT_FAILURE: FrameworkResult = 1
+RESULT_USER_INTERRUPT: FrameworkResult = "USER_INTERRUPT"
+RESULT_EXCEPTION: FrameworkResult = -1
 
 
 class BaseFramework[A: BaseApplication](ABC):
@@ -41,9 +43,11 @@ class BaseFramework[A: BaseApplication](ABC):
     app_factory: BaseApplicationFactory[A]
 
     @abstractmethod
-    def run_impl(self, *args: Any) -> FrameworkResult:
+    @log_call(type="method")
+    def run_impl(self, *args: Any) -> FrameworkResult:  # TODO(Ryan): run_impl(self, args: tuple[Any])
         """Run the Framework."""
 
+    @log_call(type="method")
     def run(self, *args: Any) -> FrameworkResult:
         """Run the Framework."""
         result: FrameworkResult
@@ -51,17 +55,18 @@ class BaseFramework[A: BaseApplication](ABC):
             logger.debug("Framework launched with args: %s", args)
             result = self.run_impl(*args)
             logger.debug("Framework result: %s", result)
-        except FrameworkError as e:
-            logger.critical("Framework error: %s", e.message, exc_info=False)
-            result = FRAMEWORK_ERROR
+        except BaseError as e:
+            logger.critical("Application error: %s", e.message, exc_info=False)
+            result = RESULT_FAILURE
         except KeyboardInterrupt:
-            logger.critical("User interrupted")
-            result = "USER_INTERRUPT"
+            logger.critical("User interrupt received.", exc_info=False)
+            result = RESULT_USER_INTERRUPT
         except Exception as e:
             logger.exception("Unhandled exception:", exc_info=e)
-            result = FRAMEWORK_FAILURE
+            result = RESULT_EXCEPTION
         return result
 
+    @log_call(type="method")
     def main(self) -> Never:
         """Main entry point for the Framework."""
         args: list[str] = sys.argv[1:]
@@ -84,19 +89,19 @@ class CommandFramework[A: BaseApplication](BaseFramework[A], ABC):  # TODO(Ryan)
     app_factory: BaseApplicationFactory[A]
     commands: dict[str, CommandFrameworkCommand[A]] = field(default_factory=dict, init=False)
 
-    @log_call(type="method", level=logging.DEBUG)
+    @log_call(type="method")
     def register(self, name: str, command: CommandFrameworkCommand[A]) -> None:
         """Register a command with the Framework."""
         if name in self.commands:
             raise FrameworkError(COMMAND_ALREADY_REGISTERED)
         self.commands[name] = command
 
-    @log_call(type="method", level=logging.DEBUG)
+    @log_call(type="method")
     def register_default(self, command: CommandFrameworkCommand[A]) -> None:
         """Register a command as the default action for the Framework."""
         self.register(COMMAND_FRAMEWORK_DEFAULT_CMD, command)
 
-    @log_call(type="method", level=logging.DEBUG)
+    @log_call(type="method")
     def unregister(self, name: str) -> None:
         """Unregister a command with the Framework."""
         if name not in self.commands:
@@ -111,6 +116,7 @@ class LogConfigProvider(ABC):
     """Provider for logging configurations."""
 
     @abstractmethod
+    @log_call(type="method")
     def get(self) -> dict[str, Any]:
         """Get the logging configuration."""
 

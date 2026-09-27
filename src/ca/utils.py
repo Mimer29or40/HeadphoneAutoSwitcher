@@ -27,6 +27,9 @@ type FuncCall[**P, R] = Callable[P, R]
 type FuncDecorator[**P, R] = Callable[[FuncCall[P, R]], FuncCall[P, R]]
 type DecoratorType[**P, R] = FuncCall[P, R] | FuncDecorator[P, R]
 
+LOG_CALL_DEFAULT_LEVEL: int = TRACE
+LOG_CALL_SENTINEL: Any = object()
+
 
 @overload
 def log_call[**P, R](method: FuncCall[P, R] | None = None, /) -> FuncCall[P, R]: ...
@@ -35,8 +38,8 @@ def log_call[**P, R](method: FuncCall[P, R] | None = None, /) -> FuncCall[P, R]:
 @overload
 def log_call[**P, R](
     *,
-    type: Literal["method", "class", "static"],
-    level: int = TRACE,
+    type: Literal["method", "class", "static"] = "static",
+    level: int = LOG_CALL_SENTINEL,
     arg_func: Literal["class", "str", "repr"] = "class",
 ) -> FuncDecorator[P, R]: ...
 
@@ -45,18 +48,22 @@ def log_call[**P, R](
     method: FuncCall[P, R] | None = None,
     /,
     type: Literal["method", "class", "static"] = "static",
-    level: int = TRACE,
+    level: int = LOG_CALL_SENTINEL,
     arg_func: Literal["class", "str", "repr"] = "class",
 ) -> DecoratorType[P, R]:
     """Log a method call at the level specified."""
 
     def decorator(func: FuncCall[P, R]) -> FuncCall[P, R]:
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            nonlocal level
+            if level is LOG_CALL_SENTINEL:
+                level = LOG_CALL_DEFAULT_LEVEL
+
             func_logger: Logger = logging.getLogger(func.__module__)
             if func_logger.isEnabledFor(level):
                 func_name: str = func.__qualname__  # ty:ignore[unresolved-attribute]
 
-                _arg_func: Callable[[Any], str] = {"class": _type_name, "str": str, "repr": repr}[arg_func]
+                _arg_func: Callable[[Any], str] = {"class": type_name, "str": str, "repr": repr}[arg_func]
 
                 arguments: list[str]
                 match type:
@@ -65,7 +72,7 @@ def log_call[**P, R](
                         arguments = [_arg_func(arg) for arg in args[1:]]
                     case "class":
                         # type(cls)
-                        arguments = [_type_name(args[0]), *map(_arg_func, args[1:])]
+                        arguments = [type_name(args[0]), *map(_arg_func, args[1:])]
                     case "static":
                         # Everything goes
                         arguments = [_arg_func(arg) for arg in args]
@@ -82,13 +89,15 @@ def log_call[**P, R](
     return decorator(method)
 
 
-def _type_name(obj: Any, brackets: bool = True) -> str:
+def type_name(obj: Any, *, brackets: bool = True) -> str:
+    """Get the name of a type as a pretty string."""
     cls: type = type(obj)
 
     cls_str: str
     if issubclass(cls, Iterable) and cls is not str:
-        cls_list: list[str] = list(dict.fromkeys(_type_name(sub_obj, brackets=False) for sub_obj in obj))
-        cls_str = f"{cls.__name__}[{' | '.join(cls_list)}]({len(cls_list)})"
+        obj_list: list = list(obj)
+        cls_list: list[str] = list(dict.fromkeys(type_name(sub_obj, brackets=False) for sub_obj in obj_list))
+        cls_str = f"{cls.__name__}[{' | '.join(cls_list)}]({len(obj_list)})"
     else:
         cls_str = cls.__name__
 

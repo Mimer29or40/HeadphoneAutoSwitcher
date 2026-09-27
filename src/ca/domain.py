@@ -20,6 +20,13 @@ if TYPE_CHECKING:
 logger: Logger = logging.getLogger("ca.domain")
 
 
+# ---------- Value ---------- #
+
+
+class BaseValue(ABC):
+    """Clean architecture base value class."""
+
+
 # ---------- Entity ---------- #
 
 
@@ -39,7 +46,7 @@ class BaseEntity(ABC):
     def __hash__(self) -> int:
         return hash(self.id)
 
-    @log_call(type="static", level=logging.DEBUG, arg_func="str")
+    @log_call(type="static", arg_func="str")
     def __post_init__(self) -> None:
         """Empty function call to enable trace logging."""
 
@@ -82,6 +89,26 @@ class RepositoryError(BaseError):
     """Exception raised by a Repository."""
 
 
+class ApplicationError(BaseError):
+    """Exception raised by an Application."""
+
+
+class PortError(BaseError):
+    """Exception raised by a Port."""
+
+
+class UseCaseError(BaseError):
+    """Exception raised by a UseCase."""
+
+
+class PresenterError(BaseError):
+    """Exception raised by a Presenter."""
+
+
+class ControllerError(BaseError):
+    """Exception raised by a Controller."""
+
+
 class FrameworkError(BaseError):
     """Exception raised by a Framework."""
 
@@ -98,11 +125,3 @@ class BaseService(ABC):
 
 class BaseRepository(ABC):
     """Clean architecture base repository class."""
-
-
-# ---------- Value ---------- #
-
-
-@dataclass(frozen=True, slots=True)
-class BaseValue(ABC):
-    """Clean architecture base value class."""

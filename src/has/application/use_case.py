@@ -52,7 +52,7 @@ class GetSoundDevicesUseCase(BaseUseCase):
             responses: list[SoundDeviceResponse] = SoundDeviceResponse.from_entities(device_entities)
             return Result.ok(responses)
         except SoundDeviceProviderError as e:
-            logger.exception("SoundDeviceProvider raised an error: %s", e.message, exc_info=False)
+            logger.critical("SoundDeviceProvider raised an error: %s", e.message, exc_info=False)
             return Result.err(e.message)
 
 
@@ -77,5 +77,5 @@ class GetUsbDevicesUseCase(BaseUseCase):
             responses: list[UsbDeviceResponse] = UsbDeviceResponse.from_entities(device_entities)
             return Result.ok(responses)
         except UsbDeviceProviderError as e:
-            logger.exception("UsbDeviceProvider raised an error: %s", e.message, exc_info=False)
+            logger.critical("UsbDeviceProvider raised an error: %s", e.message, exc_info=False)
             return Result.err(e.message)

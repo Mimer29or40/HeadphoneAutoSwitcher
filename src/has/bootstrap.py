@@ -11,8 +11,8 @@ from typing import assert_never
 
 import click
 
-from ca.infrastructure import FRAMEWORK_FAILURE
-from ca.infrastructure import FRAMEWORK_SUCCESS
+from ca.infrastructure import RESULT_FAILURE
+from ca.infrastructure import RESULT_SUCCESS
 from ca.infrastructure import BaseFramework
 from ca.infrastructure import CommandFramework
 from ca.infrastructure import FrameworkResult
@@ -100,7 +100,7 @@ def command_sound(app: HASApplication) -> FrameworkResult:
 
         _output_table(table)
 
-        return FRAMEWORK_SUCCESS
+        return RESULT_SUCCESS
 
     if Result.is_err(result):
         return _handle_error(result.value)
@@ -121,7 +121,7 @@ def command_usb(app: HASApplication) -> FrameworkResult:
 
         _output_table(table)
 
-        return FRAMEWORK_SUCCESS
+        return RESULT_SUCCESS
 
     if Result.is_err(result):
         return _handle_error(result.value)
@@ -139,7 +139,7 @@ def command_validate(app: HASApplication) -> FrameworkResult:
 
         if validation_result.is_valid:
             click.echo("Configuration is valid!")
-            return FRAMEWORK_SUCCESS
+            return RESULT_SUCCESS
 
         click.echo("Configuration is invalid!")
         reason: str
@@ -163,7 +163,7 @@ def command_listen(app: HASApplication) -> FrameworkResult:
     result: Result[None, ErrorViewModel] = app.run_controller.handle_listen(receive)
 
     if Result.is_ok(result):
-        return FRAMEWORK_SUCCESS
+        return RESULT_SUCCESS
 
     if Result.is_err(result):
         return _handle_error(result.value)
@@ -177,7 +177,7 @@ def command_run(app: HASApplication) -> FrameworkResult:
     result: Result[None, ErrorViewModel] = app.run_controller.handle_run()
 
     if Result.is_ok(result):
-        return FRAMEWORK_SUCCESS
+        return RESULT_SUCCESS
 
     if Result.is_err(result):
         return _handle_error(result.value)
@@ -189,12 +189,12 @@ def command_run(app: HASApplication) -> FrameworkResult:
 def command_shell(app: HASApplication) -> FrameworkResult:  # noqa: ARG001
     """Drop into an interactive application shell."""
     logger.warning("Not implemented.")
-    return FRAMEWORK_FAILURE
+    return RESULT_FAILURE
 
 
 def _handle_error(error_vm: ErrorViewModel) -> FrameworkResult:
     logger.error(error_vm)
-    return FRAMEWORK_FAILURE
+    return RESULT_FAILURE
 
 
 def _output_table(table: Collection[Collection[str]]) -> None:
