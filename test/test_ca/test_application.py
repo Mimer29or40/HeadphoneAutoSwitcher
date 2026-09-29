@@ -7,6 +7,8 @@ from typing import Any
 
 import pytest
 
+from test_ca._dummy import DummyEntityResponse
+
 if TYPE_CHECKING:
     from ca.application import BaseApplication
     from ca.application import BaseApplicationFactory
@@ -17,7 +19,7 @@ if TYPE_CHECKING:
     from ca.application import BaseUseCase
     from test_ca._dummy import DummyApplication
     from test_ca._dummy import DummyApplicationFactory
-    from test_ca._dummy import DummyEntityResponse
+    from test_ca._dummy import DummyEntity
     from test_ca._dummy import DummyPort
     from test_ca._dummy import DummyRequest
     from test_ca._dummy import DummyRequestDict
@@ -120,17 +122,26 @@ class TestBaseRequest:
 class TestBaseResponse:
     """Tests for BaseResponse."""
 
+    @classmethod
     @pytest.mark.unit
-    def test_from_entity(self, dummy_entity_response: DummyEntityResponse) -> None:
-        """Test for BaseResponse.from_entity()."""  # TODO(Ryan): Implement
-        # Arrange
-        _: BaseResponse = dummy_entity_response
+    def test_from_entity(cls, dummy_entity: DummyEntity) -> None:
+        """Test for BaseResponse.from_entity()."""
+        # Act
+        result: BaseResponse = DummyEntityResponse.from_entity(dummy_entity)
 
+        # Assert
+        assert result == DummyEntityResponse(value=str(dummy_entity.value.obj))
+
+    @classmethod
     @pytest.mark.unit
-    def test_from_entities(self, dummy_entity_response: DummyEntityResponse) -> None:
-        """Test for BaseResponse.from_entities()."""  # TODO(Ryan): Implement
-        # Arrange
-        _: BaseResponse = dummy_entity_response
+    def test_from_entities(cls, dummy_entities: list[DummyEntity]) -> None:
+        """Test for BaseResponse.from_entities()."""
+        # Act
+        result: list[DummyEntityResponse] = DummyEntityResponse.from_entities(dummy_entities)
+
+        # Assert
+        assert isinstance(result, list)
+        assert result == [DummyEntityResponse(value=str(e.value.obj)) for e in dummy_entities]
 
 
 # ---------- Port ---------- #

@@ -13,6 +13,7 @@ import pytest
 from ca.domain import ApplicationError
 from ca.domain import ControllerError
 from ca.domain import ErrorMsg
+from ca.domain import PresenterError
 from ca.domain import UseCaseError
 from ca.utils import TRACE
 from test_ca._dummy import DummyApplication
@@ -102,19 +103,31 @@ def dummy_value(dummy_value_obj: Any) -> DummyValue:
     return DummyValue(obj=dummy_value_obj)
 
 
+@pytest.fixture
+def dummy_values() -> list[DummyValue]:
+    """DummyValue list fixture."""
+    return [DummyValue(obj=f"dummy_value_obj{i}") for i in range(10)]
+
+
 # ---------- Entity ---------- #
 
 
 @pytest.fixture
 def dummy_entity_value() -> DummyValue:
     """DummyEntity value fixture."""
-    return DummyValue(obj="dummy_value_obj")
+    return DummyValue(obj="dummy_entity_obj")
 
 
 @pytest.fixture
 def dummy_entity(dummy_entity_value: DummyValue) -> DummyEntity:
     """DummyEntity fixture."""
     return DummyEntity(value=dummy_entity_value)
+
+
+@pytest.fixture
+def dummy_entities() -> list[DummyEntity]:
+    """DummyEntity list fixture."""
+    return [DummyEntity(value=DummyValue(obj=f"dummy_entity_obj{i}")) for i in range(10)]
 
 
 # ---------- Error ---------- #
@@ -222,15 +235,21 @@ def dummy_application_factory(
 
 
 @pytest.fixture
-def dummy_request_dict() -> DummyRequestDict:
+def dummy_request_dict_obj() -> Any:
+    """DummyRequestDict obj fixture."""
+    return "dummy_request_dict_obj"
+
+
+@pytest.fixture
+def dummy_request_dict(dummy_request_dict_obj: Any) -> DummyRequestDict:
     """DummyRequestDict fixture."""
-    return DummyRequestDict()
+    return DummyRequestDict(obj=dummy_request_dict_obj)
 
 
 @pytest.fixture
 def dummy_request_obj() -> Any:
     """DummyRequest obj fixture."""
-    return "obj"
+    return "dummy_request_obj"
 
 
 @pytest.fixture
@@ -242,13 +261,19 @@ def dummy_request(dummy_request_obj: Any) -> DummyRequest:
 @pytest.fixture
 def dummy_entity_response_value() -> str:
     """DummyEntityResponse value fixture."""
-    return "obj"
+    return "dummy_entity_response_value"
 
 
 @pytest.fixture
 def dummy_entity_response(dummy_entity_response_value: str) -> DummyEntityResponse:
     """DummyEntityResponse fixture."""
     return DummyEntityResponse(value=dummy_entity_response_value)
+
+
+@pytest.fixture
+def dummy_entity_responses() -> list[DummyEntity]:
+    """DummyEntityResponse list fixture."""
+    return [DummyEntity(value=DummyValue(obj=f"dummy_entity_responses{i}")) for i in range(10)]
 
 
 # ---------- Port ---------- #
@@ -301,13 +326,15 @@ def dummy_entity_view_model(dummy_entity_view_model_value: str) -> DummyEntityVi
 
 
 @pytest.fixture
-def dummy_entity_presenter_error_cls() -> type[UseCaseError] | None:
+def dummy_entity_presenter_error_cls() -> type[PresenterError] | None:
     """DummyEntityPresenter error_cls fixture."""
     return None
 
 
 @pytest.fixture
-def dummy_entity_presenter(dummy_entity_presenter_error_cls: type[UseCaseError] | None = None) -> DummyEntityPresenter:
+def dummy_entity_presenter(
+    dummy_entity_presenter_error_cls: type[PresenterError] | None = None,
+) -> DummyEntityPresenter:
     """DummyEntityPresenter fixture."""
     return DummyEntityPresenter(
         error_cls=dummy_entity_presenter_error_cls,

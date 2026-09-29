@@ -298,13 +298,9 @@ class DummyEntityViewModel(BaseViewModel):
 # ---------- Presenter ---------- #
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(repr=False, frozen=True, slots=True)
 class DummyEntityPresenter(BasePresenter[DummyEntityResponse, DummyEntityViewModel]):
     error_cls: type[PresenterError] | None = None
-
-    @override
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}"
 
     @classmethod
     @override

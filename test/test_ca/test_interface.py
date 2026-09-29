@@ -6,13 +6,16 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from ca.interface import ErrorViewModel
+
 if TYPE_CHECKING:
+    from ca.domain import ErrorMsg
     from ca.interface import BaseController
     from ca.interface import BasePresenter
     from ca.interface import BaseViewModel
-    from ca.interface import ErrorViewModel
     from test_ca._dummy import DummyController
     from test_ca._dummy import DummyEntityPresenter
+    from test_ca._dummy import DummyEntityResponse
     from test_ca._dummy import DummyEntityViewModel
 
 
@@ -53,9 +56,15 @@ class TestBasePresenter:
 
     @pytest.mark.unit
     def test_repr(self, dummy_entity_presenter: DummyEntityPresenter) -> None:
-        """Test for BasePresenter.__repr__()."""  # TODO(Ryan): Implement
+        """Test for BasePresenter.__repr__()."""
         # Arrange
-        _: BasePresenter = dummy_entity_presenter
+        presenter: BasePresenter = dummy_entity_presenter
+
+        # Act
+        result: str = repr(presenter)
+
+        # Assert
+        assert result == "DummyEntityPresenter"
 
     @pytest.mark.unit
     def test_present(self, dummy_entity_presenter: DummyEntityPresenter) -> None:
@@ -64,22 +73,51 @@ class TestBasePresenter:
         _: BasePresenter = dummy_entity_presenter
 
     @pytest.mark.unit
-    def test_present_many(self, dummy_entity_presenter: DummyEntityPresenter) -> None:
-        """Test for BasePresenter.present_many()."""  # TODO(Ryan): Implement
+    def test_present_many(
+        self,
+        dummy_entity_responses: list[DummyEntityResponse],
+        dummy_entity_presenter: DummyEntityPresenter,
+    ) -> None:
+        """Test for BasePresenter.present_many()."""
         # Arrange
-        _: BasePresenter = dummy_entity_presenter
+        presenter: BasePresenter = dummy_entity_presenter
+
+        # Act
+        result: list[DummyEntityViewModel] = presenter.present_many(dummy_entity_responses)
+
+        # Assert
+        assert isinstance(result, list)
+        assert len(result) == len(dummy_entity_responses)
 
     @pytest.mark.unit
-    def test_present_error(self, dummy_entity_presenter: DummyEntityPresenter) -> None:
-        """Test for BasePresenter.present_error()."""  # TODO(Ryan): Implement
+    def test_present_error(self, dummy_error_message: ErrorMsg, dummy_entity_presenter: DummyEntityPresenter) -> None:
+        """Test for BasePresenter.present_error()."""
         # Arrange
-        _: BasePresenter = dummy_entity_presenter
+        presenter: BasePresenter = dummy_entity_presenter
+
+        # Act
+        result: ErrorViewModel = presenter.present_error(dummy_error_message)
+
+        # Assert
+        assert isinstance(result, ErrorViewModel)
+        assert result.message == dummy_error_message.message
+        assert result.code == dummy_error_message.code
 
     @pytest.mark.unit
     def test_present_validation_error(self, dummy_entity_presenter: DummyEntityPresenter) -> None:
-        """Test for BasePresenter.present_validation_error()."""  # TODO(Ryan): Implement
+        """Test for BasePresenter.present_validation_error()."""
         # Arrange
-        _: BasePresenter = dummy_entity_presenter
+        presenter: BasePresenter = dummy_entity_presenter
+
+        error: ValueError = ValueError("dummy error")
+
+        # Act
+        result: ErrorViewModel = presenter.present_validation_error(error)
+
+        # Assert
+        assert isinstance(result, ErrorViewModel)
+        assert result.message == str(error)
+        assert result.code == "VALIDATION_ERROR"
 
 
 # ---------- Controller ---------- #

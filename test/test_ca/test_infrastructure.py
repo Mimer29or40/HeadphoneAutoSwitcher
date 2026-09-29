@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 import pytest
+from conftest import make_parametrize
 
 from ca.domain import FrameworkError
 from ca.infrastructure import COMMAND_ALREADY_REGISTERED
@@ -48,6 +49,7 @@ class TestBaseFramework:
             assert result == expected
 
         @pytest.mark.unit
+        @pytest.mark.parametrize(**make_parametrize("dummy_framework_error_cls", FrameworkError))
         def test_base_error(self, dummy_framework: DummyFramework) -> None:
             """Test for BaseFramework.run() when the implementation raises a BaseError."""
             # Arrange
