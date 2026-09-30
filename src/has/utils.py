@@ -14,7 +14,7 @@ logger: Logger = logging.getLogger("has.utils")
 
 
 UUID_PATTERN: re.Pattern[str] = re.compile(
-    r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+    r"([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})",
     flags=re.IGNORECASE,
 )
 
@@ -27,3 +27,8 @@ def extract_uuid(string: str) -> UUID | None:
     hex: str = match.group(1)
     uuid: UUID = UUID(hex)
     return uuid
+
+
+def hex_string_to_int(string: str) -> int:
+    """Convert a hex string to an integer."""
+    return int(string, 16)

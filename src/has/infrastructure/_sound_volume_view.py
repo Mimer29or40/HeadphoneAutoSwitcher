@@ -1,4 +1,4 @@
-"""Headphone Auto Switcher SoundVolumeView SoundDeviceProvider implementation."""
+"""Headphone Auto Switcher SoundVolumeView implementation."""
 
 from __future__ import annotations
 

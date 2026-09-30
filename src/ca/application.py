@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import logging.config
 from abc import ABC
 from abc import abstractmethod
+from dataclasses import Field
 from dataclasses import dataclass
 from dataclasses import field
+from dataclasses import fields
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Self
 from typing import TypedDict
+from typing import override
 
 from ca.domain import BaseEntity
 from ca.domain import ErrorMsg
@@ -19,6 +23,7 @@ from ca.utils import log_call
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from logging import Logger
+    from pathlib import Path
 
     from ca.utils import Result
 
@@ -50,6 +55,61 @@ class BaseApplicationFactory[A: BaseApplication](ABC):
         """Create the application."""
 
 
+# ---------- Config ---------- #
+
+
+class BaseConfig(ABC):
+    """Clean architecture base config class."""
+
+
+class BaseConfigProvider[C: BaseConfig](ABC):
+    """Clean architecture base config provider class."""
+
+    @abstractmethod
+    def get(self) -> C:
+        """Get the Config object."""
+
+
+class BaseConfigValidator[C: BaseConfig](ABC):
+    """HeadphoneAutoSwitcher config provider class."""
+
+    @abstractmethod
+    def validate(self, config: C) -> None:
+        """Validate the Config object."""
+
+
+@dataclass(frozen=True, slots=True)
+class MemoryConfigProvider[C: BaseConfig](BaseConfigProvider[C]):
+    """ConfigProvider from memory."""
+
+    config_cls: type[C]
+    config: dict[str, Any]
+
+    @override
+    def get(self) -> C:
+        return self.config_cls(**self.config)
+
+
+@dataclass(frozen=True, slots=True)
+class JsonConfigProvider[C: BaseConfig](BaseConfigProvider[C]):
+    """ConfigProvider from a JSON file."""
+
+    config_cls: type[C]
+    file: Path
+
+    @override
+    def get(self) -> C:
+        contents: str = self.file.read_text()
+        loaded: dict[str, str] = json.loads(contents)
+
+        values: dict[str, str] = {}
+        f: Field
+        for f in fields(self.config_cls):
+            values[f.name] = loaded[f.name]
+
+        return self.config_cls(**values)
+
+
 # ---------- Data Transfer Object (DTO) ---------- #
 
 
@@ -69,6 +129,24 @@ class BaseRequest[T: BaseRequestDict](ABC):
     @log_call(type="method")
     def convert(self) -> T:
         """Convert the Request parameters into UseCase parameters."""
+
+
+class EmptyRequestDict(BaseRequestDict, TypedDict):
+    """Empty RequestDict."""
+
+
+@dataclass(frozen=True, slots=True)
+class EmptyRequest(BaseRequest):
+    """Clean architecture base request class."""
+
+    @log_call(type="method")
+    def __post_init__(self) -> None:
+        """Nothing to validate."""
+
+    @log_call(type="method")
+    def convert(self) -> EmptyRequestDict:
+        """Nothing to convert."""
+        return EmptyRequestDict()
 
 
 class BaseResponse[T: BaseEntity](ABC):

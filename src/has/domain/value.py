@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import field
 from enum import Enum
@@ -30,3 +31,6 @@ class UsbDevicePacket:
 
     time: float = field(default_factory=monotonic, init=False)
     data: list[int]
+
+
+type UsbDevicePacketCallback = Callable[[UsbDevicePacket], None]

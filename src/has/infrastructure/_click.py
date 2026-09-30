@@ -1,4 +1,4 @@
-"""Headphone Auto Switcher click Framework implementation."""
+"""Headphone Auto Switcher click implementation."""
 
 from __future__ import annotations
 

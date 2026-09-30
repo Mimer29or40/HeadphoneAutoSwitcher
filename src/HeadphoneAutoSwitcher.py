@@ -156,9 +156,9 @@ class Config:
     @classmethod
     def load_from_file(cls, file_path: Path, errors: list[str]) -> Self:
         """Load config from file."""
-        loaded: dict[str, str] = json.loads(file_path.read_text())
+        loaded: dict[str, Any] = json.loads(file_path.read_text())
 
-        values: dict[str, str] = {}
+        values: dict[str, Any] = {}
         f: Field
         for f in fields(cls):
             if f.name not in loaded:

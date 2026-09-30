@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from logging import Logger
     from uuid import UUID
 
+    from has.domain.value import UsbDevicePacket
+
 logger: Logger = logging.getLogger("has.domain.service")
 
 
@@ -65,3 +67,22 @@ class SoundDeviceProvider(BaseService, _DeviceProviderMixIn[SoundDevice, Any], A
 
 class UsbDeviceProvider(BaseService, _DeviceProviderMixIn[UsbDevice, Any], ABC):
     """Provider service of UsbDevices."""
+
+    # TODO(Ryan): get_all(vendor_id: int = None, product_id: int = None)
+
+
+class UsbDevicePacketListener(ABC):
+    """Listens to UsbDevices."""
+
+    @abstractmethod
+    def start(self, vendor_id: int, product_id: int) -> None:
+        """Start listening for UsbDevicesPacket."""
+        # TODO(Ryan): Explicitly pass UsbDevice list to listen to
+
+    @abstractmethod
+    def stop(self) -> None:
+        """Stop listening for UsbDevicePackets."""
+
+    @abstractmethod
+    def get(self, block: bool = True, timeout: float | None = None) -> UsbDevicePacket | None:
+        """Get a UsbDevicePacket from the Listener."""

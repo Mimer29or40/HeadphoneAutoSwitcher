@@ -9,8 +9,10 @@ from typing import TYPE_CHECKING
 from ca.interface import BasePresenter
 from has.application.dto import SoundDeviceResponse
 from has.application.dto import UsbDeviceResponse
+from has.application.dto import ValidationResponse
 from has.interface.view_model import SoundDeviceViewModel
 from has.interface.view_model import UsbDeviceViewModel
+from has.interface.view_model import ValidationViewModel
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -24,3 +26,7 @@ class SoundDevicePresenter(BasePresenter[SoundDeviceResponse, SoundDeviceViewMod
 
 class UsbDevicePresenter(BasePresenter[UsbDeviceResponse, UsbDeviceViewModel], ABC):
     """Presenter for UsbDevices."""
+
+
+class ValidationPresenter(BasePresenter[ValidationResponse, ValidationViewModel], ABC):
+    """Presenter for Validations."""

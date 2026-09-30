@@ -30,7 +30,7 @@ class BaseValue(ABC):
 # ---------- Entity ---------- #
 
 
-@dataclass(eq=False, kw_only=True)
+@dataclass(eq=False, slots=True)
 class BaseEntity(ABC):
     """Clean architecture base entity class."""
 

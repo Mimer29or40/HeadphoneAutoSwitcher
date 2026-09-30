@@ -9,6 +9,7 @@ from dataclasses import field
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Self
+from typing import TypedDict
 from typing import assert_never
 from typing import override
 
@@ -198,7 +199,7 @@ class DummyApplicationFactory(BaseApplicationFactory[DummyApplication]):
 # ---------- Data Transfer Object (DTO) ---------- #
 
 
-class DummyRequestDict(BaseRequestDict):
+class DummyRequestDict(BaseRequestDict, TypedDict):
     obj: Any
 
 

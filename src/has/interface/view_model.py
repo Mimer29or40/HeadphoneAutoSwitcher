@@ -34,9 +34,9 @@ class UsbDeviceViewModel(BaseViewModel):
 
 
 @dataclass(frozen=True, slots=True)
-class ValidationResultViewModel(BaseViewModel):
+class ValidationViewModel(BaseViewModel):
     """ViewModel for a ValidationResult."""
 
     id: str
-    is_valid: bool
+    is_valid: str
     reasons: list[str]

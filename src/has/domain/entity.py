@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ca.domain import BaseEntity
+from ca.domain import ErrorMsg
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -33,3 +34,15 @@ class UsbDevice(BaseEntity):  # TODO(Ryan): More fields
     product_id: int
     vendor_name: str
     vendor_id: int
+
+
+@dataclass(eq=False, kw_only=True)
+class Validation(BaseEntity):
+    """Validation result of the application configuration."""
+
+    reasons: list[ErrorMsg]
+
+    @property
+    def is_valid(self) -> bool:
+        """Return True, if the configuration is valid, False otherwise."""
+        return len(self.reasons) == 0

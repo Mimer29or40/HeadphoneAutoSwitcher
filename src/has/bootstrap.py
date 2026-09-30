@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from has.infrastructure.application import HASApplicationFactory
     from has.interface.view_model import SoundDeviceViewModel
     from has.interface.view_model import UsbDeviceViewModel
-    from has.interface.view_model import ValidationResultViewModel
+    from has.interface.view_model import ValidationViewModel
 
 logger: Logger = logging.getLogger("has.bootstrap")
 
@@ -90,7 +90,7 @@ def web_framework() -> CommandFramework[HASApplication]:
 @log_call(type="static", arg_func="str")
 def command_sound(app: HASApplication) -> FrameworkResult:
     """List the SoundDevices on the system."""
-    result: Result[list[SoundDeviceViewModel], ErrorViewModel] = app.sound_device_controller.get_sound_devices()
+    result: Result[list[SoundDeviceViewModel], ErrorViewModel] = app.sound_device_controller.handle_get_sound_devices()
 
     if Result.is_ok(result):
         devices: list[SoundDeviceViewModel] = result.value
@@ -111,7 +111,7 @@ def command_sound(app: HASApplication) -> FrameworkResult:
 @log_call(type="static", arg_func="str")
 def command_usb(app: HASApplication) -> FrameworkResult:
     """List the UsbDevices on the system."""
-    result: Result[list[UsbDeviceViewModel], ErrorViewModel] = app.usb_device_controller.get_usb_devices()
+    result: Result[list[UsbDeviceViewModel], ErrorViewModel] = app.usb_device_controller.handle_get_usb_devices()
 
     if Result.is_ok(result):
         devices: list[UsbDeviceViewModel] = result.value
@@ -132,10 +132,10 @@ def command_usb(app: HASApplication) -> FrameworkResult:
 @log_call(type="static", arg_func="str")
 def command_validate(app: HASApplication) -> FrameworkResult:
     """Validate the application configuration."""
-    result: Result[ValidationResultViewModel, ErrorViewModel] = app.run_controller.handle_validate()
+    result: Result[ValidationViewModel, ErrorViewModel] = app.switcher_controller.handle_validate()
 
     if Result.is_ok(result):
-        validation_result: ValidationResultViewModel = result.value
+        validation_result: ValidationViewModel = result.value
 
         if validation_result.is_valid:
             click.echo("Configuration is valid!")
@@ -160,7 +160,7 @@ def command_listen(app: HASApplication) -> FrameworkResult:
     def receive(packet: UsbDevicePacket) -> None:
         click.echo(f"Packet received: {packet}")
 
-    result: Result[None, ErrorViewModel] = app.run_controller.handle_listen(receive)
+    result: Result[None, ErrorViewModel] = app.switcher_controller.handle_listen(receive)
 
     if Result.is_ok(result):
         return RESULT_SUCCESS
@@ -174,7 +174,7 @@ def command_listen(app: HASApplication) -> FrameworkResult:
 @log_call(type="static", arg_func="str")
 def command_run(app: HASApplication) -> FrameworkResult:
     """Run the application."""
-    result: Result[None, ErrorViewModel] = app.run_controller.handle_run()
+    result: Result[None, ErrorViewModel] = app.switcher_controller.handle_run()
 
     if Result.is_ok(result):
         return RESULT_SUCCESS
