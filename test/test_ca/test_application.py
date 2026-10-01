@@ -54,7 +54,7 @@ class TestBaseApplicationFactory:
         application_factory: BaseApplicationFactory = dummy_application_factory
 
         # Act
-        result: str = application_factory.name
+        result: str = application_factory.app_name
 
         # Arrange
         assert isinstance(result, str)
@@ -66,7 +66,7 @@ class TestBaseApplicationFactory:
         application_factory: BaseApplicationFactory = dummy_application_factory
 
         # Act
-        result: str = application_factory.description
+        result: str = application_factory.app_description
 
         # Arrange
         assert isinstance(result, str)
@@ -78,7 +78,7 @@ class TestBaseApplicationFactory:
         application_factory: BaseApplicationFactory = dummy_application_factory
 
         # Act
-        result: str = application_factory.version
+        result: str = application_factory.app_version
 
         # Arrange
         assert isinstance(result, str)

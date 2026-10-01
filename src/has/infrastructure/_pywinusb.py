@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import tempfile
 from dataclasses import dataclass
 from dataclasses import field
-from pathlib import Path
 from queue import Empty
 from queue import Full
 from queue import Queue
@@ -33,12 +31,9 @@ if TYPE_CHECKING:
 # type RawUsbDevice = dict[str, Any]
 type RawUsbDevice = HidDevice
 
-logger: Logger = logging.getLogger("has.infrastructure._py_win_usb")
+logger: Logger = logging.getLogger("has.infrastructure._pywinusb")
 
-PY_WIN_USB_ERROR: ErrorMsg = ErrorMsg("pywinusb: error.")
-
-SOUND_VOLUME_VIEW_EXECUTABLE_PATH: Path = Path("UsbVolumeView.exe")
-SOUND_VOLUME_VIEW_OUTPUT_FILE_PATH: Path = Path(tempfile.gettempdir()) / "UsbVolumeView-Output.txt"
+PYWINUSB_ERROR: ErrorMsg = ErrorMsg("pywinusb: error.")
 
 
 # TODO(Ryan): UUIDs are all the same?
@@ -91,7 +86,7 @@ class PyWinUsbListener(UsbDevicePacketListener):
 
     max_queue: int = 100
     devices: list[HidDevice] = field(default_factory=list, init=False)
-    queue: Queue[UsbDevicePacket] | None = field(default=None, init=False)
+    queue: Queue[UsbDevicePacket] = field(default=None, init=False)  # ty:ignore[invalid-assignment]
 
     @override
     @log_call(type="method")
@@ -104,7 +99,7 @@ class PyWinUsbListener(UsbDevicePacketListener):
             logger.info("Loading: %s[%s]", device.product_name, device.instance_id)
             try:
                 device.open()
-                device.set_raw_data_handler(self._data_handler_)
+                device.set_raw_data_handler(self.handle_data)
                 self.devices.append(device)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Unable to open device: %s", device.product_name, exc_info=e)
@@ -123,12 +118,13 @@ class PyWinUsbListener(UsbDevicePacketListener):
             object.__setattr__(self, "queue", None)
 
     @override
+    @log_call(type="method")
     def get(self, block: bool = True, timeout: float | None = None) -> UsbDevicePacket | None:
         if self.queue is not None:
             return self.queue.get(block=block, timeout=timeout)
         return None
 
-    def _data_handler_(self, data: list[int]) -> None:
+    def handle_data(self, data: list[int]) -> None:
         """Data handler function called on device listener threads."""
         if self.queue is None:
             return
@@ -137,6 +133,7 @@ class PyWinUsbListener(UsbDevicePacketListener):
         try:
             self.queue.put_nowait(packet)
         except Full:
+            # Queue is full, remove oldest item
             with contextlib.suppress(Empty):
                 self.queue.get_nowait()
             self.queue.put_nowait(packet)

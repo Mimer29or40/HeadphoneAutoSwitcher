@@ -64,9 +64,25 @@ class _DeviceProviderMixIn[T: BaseEntity, RAW](ABC):
 class SoundDeviceProvider(BaseService, _DeviceProviderMixIn[SoundDevice, Any], ABC):
     """Provider service of SoundDevices."""
 
+    # @abstractmethod
+    # def get_one(self, device_id: UUID) -> SoundDevice | None:
+    #     """Get a SoundDevice."""
+    #
+    # @abstractmethod
+    # def get_all(self) -> list[SoundDevice]:
+    #     """Get all SoundDevices."""
+
 
 class UsbDeviceProvider(BaseService, _DeviceProviderMixIn[UsbDevice, Any], ABC):
     """Provider service of UsbDevices."""
+
+    # @abstractmethod
+    # def get_one(self, device_id: UUID) -> UsbDevice | None:
+    #     """Get a UsbDevice."""
+    #
+    # @abstractmethod
+    # def get_all(self) -> list[UsbDevice]:
+    #     """Get all UsbDevices."""
 
     # TODO(Ryan): get_all(vendor_id: int = None, product_id: int = None)
 

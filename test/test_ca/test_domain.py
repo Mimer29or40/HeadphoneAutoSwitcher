@@ -62,11 +62,11 @@ class TestBaseEntity:
             assert result is True
 
         @pytest.mark.unit
-        def test_not_equal(self, dummy_uuid: UUID, dummy_entity: DummyEntity) -> None:
+        def test_not_equal(self, dummy_id: UUID, dummy_entity: DummyEntity) -> None:
             """Test for BaseEntity.__eq__() with unequal entities."""
             # Arrange
             x: BaseEntity = replace(dummy_entity)
-            y: BaseEntity = replace(dummy_entity, id=dummy_uuid)
+            y: BaseEntity = replace(dummy_entity, id=dummy_id)
 
             # Act
             result: bool = x == y
@@ -75,11 +75,11 @@ class TestBaseEntity:
             assert result is False
 
         @pytest.mark.unit
-        def test_not_implemented(self, dummy_uuid: UUID, dummy_entity: DummyEntity) -> None:
+        def test_not_implemented(self, dummy_id: UUID, dummy_entity: DummyEntity) -> None:
             """Test for BaseEntity.__eq__() with the wrong type."""
             # Arrange
             x: BaseEntity = replace(dummy_entity)
-            y: Any = dummy_uuid
+            y: Any = dummy_id
 
             # Act
             result: bool = x.__eq__(y)

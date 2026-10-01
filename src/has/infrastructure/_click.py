@@ -27,8 +27,6 @@ from ca.infrastructure import configure_logging
 if TYPE_CHECKING:
     from logging import Logger
 
-type RawUsbDevice = dict[str, Any]
-
 logger: Logger = logging.getLogger("has.infrastructure.click")
 
 

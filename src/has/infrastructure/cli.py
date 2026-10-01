@@ -71,8 +71,8 @@ class CLIHASApplicationFactory(HASApplicationFactory):
     def create(self) -> HASApplication:
         # Create application with dependencies
         from ca.application import JsonConfigProvider
-        from has.infrastructure._py_win_usb import PyWinUsbListener
-        from has.infrastructure._py_win_usb import PyWinUsbProvider
+        from has.infrastructure._pywinusb import PyWinUsbListener
+        from has.infrastructure._pywinusb import PyWinUsbProvider
         from has.infrastructure._pydantic import PydanticValidator
         from has.infrastructure._sound_volume_view import SoundVolumeView
         from has.infrastructure.presentation.console import ConsoleSoundDevicePresenter
