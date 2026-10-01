@@ -6,21 +6,31 @@ build-backend = "uv_build"
 name = "has"
 version = "3.0.0a1"
 requires-python = ">=3.14"
+license = "MIT"
+license-files = []
 dependencies = [
+    "ca",
     "click==8.5.0",
-    "pydantic>=2.13.5",
-    "python-dateutil>=2.9.0",
+    "pip-system-certs==5.3",
+    "pydantic==2.13.5",
+    "python-dateutil==2.9.0.post0",
     "pywin32==312",
     "pywinusb==0.4.2", #; platform_system == 'Windows'",
+    "setuptools>=84.0.0",
     "simplifiedcli==1.2.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pyinstaller>=6.22.3",
+[dependency-groups]
+test = [
     "pytest-check>=2.9.1",
     "pytest-cov>=7.1.0",
     "pytest>=9.1.1",
+]
+dev = [
+    "py2exe",
+#    "pex",  # Disabled until windows support is implemeneted  # https://docs.pex-tool.org/
+    "pyinstaller>=6.22.3",
+    "uv-pack>=0.2.0",
 ]
 
 [project.scripts]
@@ -35,7 +45,10 @@ markers = [
     "architectural",
 ]
 pythonpath = ["src"]
-testpaths = ["tests"]
+testpaths = ["tests"]# Root pyproject.toml
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
 
 [tool.coverage.report]
 exclude_also = [
@@ -46,6 +59,13 @@ exclude_also = [
 
 [tool.uv]
 system-certs = true
+default-groups = "all"
+
+[tool.uv.sources]
+ca = { workspace = true }
+
+[tool.uv.workspace]
+members = ["package/*"]
 
 [tool.ruff]
 # https://docs.astral.sh/ruff/settings/

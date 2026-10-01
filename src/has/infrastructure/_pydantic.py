@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING
 from typing import Annotated
 from typing import override
 
+from ca.application import BaseConfig
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import StringConstraints
 
-from ca.application import BaseConfig
 from has.application.config import Config
 from has.application.config import ConfigValidator
 

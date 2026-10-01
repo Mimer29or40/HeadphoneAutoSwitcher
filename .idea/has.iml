@@ -13,9 +13,11 @@
       <excludeFolder url="file://$MODULE_DIR$/HeadphoneAutoSwitcher.json" />
       <excludeFolder url="file://$MODULE_DIR$/SoundVolumeView.cfg" />
       <excludeFolder url="file://$MODULE_DIR$/handler_db.json" />
+      <excludeFolder url="file://$MODULE_DIR$/pack" />
     </content>
-    <orderEntry type="jdk" jdkName="uv (HeadphoneAutoSwitcher)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="ca" exported="" />
+    <orderEntry type="jdk" jdkName="uv (HeadphoneAutoSwitcher)" jdkType="Python SDK" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="renderExternalDocumentation" value="true" />

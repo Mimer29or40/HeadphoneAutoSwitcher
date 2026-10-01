@@ -10,7 +10,6 @@ from typing import Never
 from typing import assert_never
 
 import click
-
 from ca.infrastructure import RESULT_FAILURE
 from ca.infrastructure import RESULT_SUCCESS
 from ca.infrastructure import BaseFramework
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
     from logging import Logger
 
     from ca.interface import ErrorViewModel
+
     from has.domain.value import UsbDevicePacket
     from has.infrastructure.application import HASApplication
     from has.infrastructure.application import HASApplicationFactory
@@ -32,59 +32,6 @@ if TYPE_CHECKING:
     from has.interface.view_model import ValidationViewModel
 
 logger: Logger = logging.getLogger("has.bootstrap")
-
-
-def cli_framework_main() -> Never:
-    """Main entry point for the CLI Framework."""
-    framework: BaseFramework = cli_framework()
-    framework.main()
-
-
-def cli_framework_run(*args: Any) -> FrameworkResult:
-    """Run the CLI Framework."""
-    framework: BaseFramework = cli_framework()
-    return framework.run(*args)
-
-
-def cli_framework() -> CommandFramework[HASApplication]:
-    """Create the CLI Framework."""
-    from has.infrastructure._click import ClickFramework
-    from has.infrastructure.cli import CLIHASApplicationFactory
-
-    # Create ApplicationFactory
-    app_factory: HASApplicationFactory = CLIHASApplicationFactory()
-
-    # Create Framework
-    framework: CommandFramework[HASApplication] = ClickFramework(app_factory)
-
-    # Register commands
-    # TODO(Ryan): Command to track time between heartbeats
-    framework.register_default(command_shell)
-    framework.register("sound", command_sound)
-    framework.register("usb", command_usb)
-    framework.register("validate", command_validate)
-    framework.register("listen", command_listen)
-    framework.register("run", command_run)
-    framework.register("shell", command_shell)
-
-    return framework
-
-
-def web_framework_main() -> Never:
-    """Main entry point for the WEB Framework."""
-    framework: BaseFramework = web_framework()
-    framework.main()
-
-
-def web_framework_run(*args: Any) -> FrameworkResult:
-    """Run the WEB Framework."""
-    framework: BaseFramework = web_framework()
-    return framework.run(*args)
-
-
-def web_framework() -> CommandFramework[HASApplication]:
-    """Create the WEB Framework."""
-    raise NotImplementedError
 
 
 @log_call(type="static", arg_func="str")
@@ -216,3 +163,46 @@ def _output_table(table: Collection[Collection[str]]) -> None:
     for row in table:
         message: str = row_format.format(*row)
         click.echo(message)
+
+
+def cli_framework() -> CommandFramework[HASApplication]:
+    """Create the CLI Framework."""
+    from has.infrastructure._click import ClickFramework
+    from has.infrastructure.cli import CLIHASApplicationFactory
+
+    # Create ApplicationFactory
+    app_factory: HASApplicationFactory = CLIHASApplicationFactory()
+
+    # Create Framework
+    framework: CommandFramework[HASApplication] = ClickFramework(app_factory)
+
+    # Register commands
+    # TODO(Ryan): Command to track time between heartbeats
+    framework.register_default(command_shell)
+    framework.register("sound", command_sound)
+    framework.register("usb", command_usb)
+    framework.register("validate", command_validate)
+    framework.register("listen", command_listen)
+    framework.register("run", command_run)
+    framework.register("shell", command_shell)
+
+    return framework
+
+
+def cli_framework_run(*args: Any) -> FrameworkResult:
+    """Run the CLI Framework."""
+    framework: BaseFramework = cli_framework()
+    return framework.run(*args)
+
+
+def cli_framework_main() -> Never:
+    """Main entry point for the CLI Framework."""
+    framework: BaseFramework = cli_framework()
+    framework.main()
+
+
+if __name__ == "__main__":
+    from multiprocessing import freeze_support
+
+    freeze_support()
+    cli_framework_main()

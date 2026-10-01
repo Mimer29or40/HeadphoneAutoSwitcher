@@ -4,14 +4,16 @@ set shell := ["powershell.exe", "-c"]
 export PATH := join(justfile_directory(), ".env", "bin") + ":" + env_var('PATH')
 export PYTHONPATH := join(justfile_directory(), "src")
 
-build_pkg:
+__build__ name script:
+    uv run pyinstaller \
+        --specpath build \
+        --hidden-import win32timezone \
+        -n {{name}} \
+        {{ script }}
+
+pkg:
     uv build --all-packages --sdist --wheel --clear
 #    uv build --all-packages --sdist --wheel --force-pep517 --clear
 
-build_exe:
-    uv run pyinstaller \
-        --onefile \
-        --specpath build \
-        --hidden-import win32timezone \
-        -n HeadphoneAutoSwitcher \
-        src/HeadphoneAutoSwitcher.py
+exe_cli: (__build__ "HeadphoneAutoSwitcher-cli"  "src/has/bootstrap_cli.py")
+exe_web: (__build__ "HeadphoneAutoSwitcher-web"  "src/has/bootstrap_web.py")
